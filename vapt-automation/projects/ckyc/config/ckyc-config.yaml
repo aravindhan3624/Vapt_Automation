@@ -1,0 +1,132 @@
+# ============================================================================
+# CKYC project configuration — THIS is what "onboarding CKYC" means.
+# Every value below marked <<FILL ME>> is something only you can provide.
+# Nothing here is a literal password/token/API key — credentials are ALWAYS
+# environment-variable references (see roles[].usernameEnvVar / passwordEnvVar).
+# ============================================================================
+
+projectName: CKYC
+environment: UAT                      # must be UAT / SIT / STAGING — never PROD
+baseUrl: "<<FILL ME e.g. https://ckyc-uat.yourbank.co.in>>"
+apiBaseUrl: "<<FILL ME e.g. https://ckyc-uat-api.yourbank.co.in>>"
+openApiSpecUrl: null                  # e.g. "https://ckyc-uat-api.yourbank.co.in/swagger/v1/swagger.json" — null if none
+
+authentication:
+  type: API_LOGIN                     # API_LOGIN | FORM_LOGIN | OAUTH2 | BEARER_STATIC
+  loginUrl: "/auth/login"
+  usernameField: "username"
+  passwordField: "password"
+  otpRequired: "conditional"
+  tokenJsonPath: "$.data.accessToken"
+
+roles:
+  - roleName: Maker
+    usernameEnvVar: CKYC_MAKER_USER
+    passwordEnvVar: CKYC_MAKER_PASS
+    permissions:
+      CREATE_CUSTOMER: ALLOWED
+      EDIT_CUSTOMER: ALLOWED
+      APPROVE_CUSTOMER: FORBIDDEN
+  - roleName: Checker
+    usernameEnvVar: CKYC_CHECKER_USER
+    passwordEnvVar: CKYC_CHECKER_PASS
+    permissions:
+      CREATE_CUSTOMER: FORBIDDEN
+      APPROVE_CUSTOMER: ALLOWED
+  - roleName: Admin
+    usernameEnvVar: CKYC_ADMIN_USER
+    passwordEnvVar: CKYC_ADMIN_PASS
+    permissions:
+      MANAGE_USERS: ALLOWED
+
+endpoints:
+  - id: customer.getById
+    path: "/customer/{id}"
+    method: GET
+    module: Customer
+    allowedRoles: [Maker, Checker, Admin]
+    pathParams:
+      - name: id
+        dataType: IDENTIFIER
+        mandatory: true
+    containsSensitiveData: true
+  - id: customer.create
+    path: "/customer"
+    method: POST
+    module: Customer
+    allowedRoles: [Maker]
+    bodyFields:
+      - name: panNumber
+        dataType: STRING
+        mandatory: true
+        pattern: "^[A-Z]{5}[0-9]{4}[A-Z]$"
+      - name: dob
+        dataType: DATE
+        mandatory: true
+  - id: dvs.submit
+    path: "/dvs/submit"
+    method: POST
+    module: DVS
+    allowedRoles: [Maker]
+    fileUpload: true
+  - id: checker.approve
+    path: "/checker/approve"
+    method: POST
+    module: Approval
+    allowedRoles: [Checker]
+# <<FILL ME>> — add the rest of the CKYC endpoint inventory here, or point
+# openApiSpecUrl above at CKYC's Swagger and let the discovery step generate this list.
+
+businessRules:
+  - ruleId: BR-CKYC-001
+    module: Approval
+    condition: "Maker attempts to approve a transaction they created"
+    expectedResult: "Server rejects with 403; Maker cannot self-approve"
+    severity: Critical
+    verificationMethod: API
+  - ruleId: BR-CKYC-002
+    module: Customer
+    condition: "NRI customer type submitted without required address relationship fields"
+    expectedResult: "Server returns 400 with validation error, record not created"
+    severity: Medium
+    verificationMethod: API
+# <<FILL ME>> — add CKYC's actual Maker-Checker / NRI / document-dependency rules here.
+
+documentMaster:
+  documentTypes:
+    - documentName: "<<FILL ME e.g. Aadhaar>>"
+      poiCode: "<<FILL ME>>"
+      poaCode: "<<FILL ME>>"
+      poia: true
+      allowedExtensions: [jpg, jpeg, png, pdf]
+      maxSizeMb: 5
+# <<FILL ME>> — CKYC's real Document Master (POI/POA codes) is project-specific;
+# the catalog finding VAPT-057 (Insecure File Upload) drives against this list.
+
+zap:
+  enabled: false            # flip to true once OWASP ZAP is installed and running
+  zapHost: localhost
+  zapPort: 8080
+  apiKeyEnvVar: CKYC_ZAP_API_KEY
+  scanPolicyName: "Banking-Safe-Active-Scan"
+  contextName: "CKYC-UAT"
+  reportOutputDir: "../../reports/output"
+
+database:
+  enabled: false            # leave false unless read-only DB validation is explicitly required
+  readOnly: true
+  jdbcUrl: "<<FILL ME if DB validation is in scope>>"
+  usernameEnvVar: CKYC_DB_USER
+  passwordEnvVar: CKYC_DB_PASS
+
+# Test-data ids referenced by step defs. TEST objects only — never a real customer.
+testData:
+  id: "<<FILL ME — id of a TEST customer the Maker test user owns (fills {id} in endpoint paths)>>"
+  foreignCustomerId: "<<FILL ME — id of a TEST customer owned by a different test user (IDOR check, VAPT-049)>>"
+
+scope:
+  authorizedBy: "<<FILL ME — name/role of the person who approved this engagement>>"
+  approvalReference: "<<FILL ME — ticket/email/engagement-letter reference>>"
+  approvalDate: "<<FILL ME — YYYY-MM-DD>>"
+  allowedEnvironments: "UAT only"
+  notes: "Authorized security regression testing — test accounts/data only, no destructive exploitation."

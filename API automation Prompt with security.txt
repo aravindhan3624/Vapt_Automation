@@ -1,0 +1,430 @@
+Act as a Senior SDET/API Automation Architect.
+I need to automate a third-party API integration called "DailyAds – New Ads" using Java + Rest Assured + TestNG + Maven.
+The API uses OAuth 2.0 Client Credentials authentication.
+Important security requirement:
+Do NOT hardcode Client ID or Client Secret in Java source code.
+Use environment variables or a secure configuration mechanism.
+In all examples use placeholders such as:
+
+MR_CLIENT_ID=${MR_CLIENT_ID}
+
+MR_CLIENT_SECRET=${MR_CLIENT_SECRET}
+Never print the Client Secret, access token, Authorization header, or other sensitive credentials in reports/logs.
+Technology stack:
+Java 17
+Maven
+Rest Assured
+TestNG
+Jackson/Gson where required
+Apache POI if Excel-driven test data is appropriate
+Allure reporting
+Extent Reports if required
+SLF4J/Logback
+JSON Schema validation where applicable
+I will provide the official Media Research API integration guide separately.
+First analyze the API documentation and identify:
+OAuth token endpoint
+Authentication mechanism
+Required headers
+Required request parameters
+API endpoints
+HTTP methods
+Request body schemas
+Response schemas
+Expected HTTP status codes
+Pagination/filter/sorting mechanisms
+Rate limits
+Error responses
+Required scopes/permissions
+Any callback/redirect requirements
+Any API-specific business rules
+Then design an enterprise-grade Rest Assured automation framework.
+Expected structure:
+src/test/java
+
+├── base
+
+├── config
+
+├── auth
+
+├── clients
+
+├── endpoints
+
+├── requests
+
+├── responses
+
+├── tests
+
+├── utils
+
+├── assertions
+
+└── listeners
+src/test/resources
+
+├── config
+
+├── testdata
+
+├── schemas
+
+└── payloads
+Implement:
+OAuth token generation
+Token reuse where appropriate
+Automatic token refresh when expired
+Request specification
+Response specification
+Common API client
+Request/response logging with secrets masked
+Reusable assertions
+JSON schema validation
+TestNG grouping
+Retry only for technically retryable failures
+Configurable environment: DEV/UAT/QA/PROD
+Parallel execution where safe
+Allure reporting
+Test execution summary
+Do NOT invent API endpoints or request/response fields that are not present in the supplied documentation.
+If documentation is incomplete, clearly mark the missing information instead of guessing.
+First provide:
+
+A. Proposed framework architecture
+
+B. Folder structure
+
+C. Maven dependencies
+
+D. Configuration strategy
+
+E. Authentication strategy
+
+F. Test execution strategy
+
+G. Reporting strategy
+Do not generate all test classes yet. Wait until I provide the API documentation and test scenarios.
+ 
+Ryali Raghavendra Babu
+Act as a Senior SDET/API Automation Architect. I need to automate a third-party API integration called "DailyAds – New Ads" using Java + Rest Assured + TestNG + Maven. The API uses OAuth 2.0 Client C…
+For 
+ 
+1. Prompt to Claude — build the Rest Assured framework
+You can send this as your first prompt:
+ 
+2. Prompt for API Test Cases
+Once Claude understands the API documentation, give it this:
+ 
+Using the provided DailyAds / Media Research API documentation, act as a Senior API QA Engineer and create a complete API automation test-case matrix.
+Do not invent functionality that is not documented.
+Create test cases covering:
+AUTHENTICATION
+Valid OAuth client credentials
+Invalid Client ID
+Invalid Client Secret
+Missing Client ID
+Missing Client Secret
+Invalid grant type
+Missing grant type
+Expired token
+Invalid token
+Missing Authorization header
+Malformed Authorization header
+Insufficient scope/permission
+API FUNCTIONAL TESTING
+Valid request
+Mandatory field validation
+Missing mandatory fields
+Null values
+Empty values
+Invalid data types
+Invalid formats
+Boundary values
+Invalid IDs
+Non-existing records
+Duplicate requests where applicable
+Invalid query parameters
+Invalid filters
+Invalid pagination values
+Maximum/minimum supported values
+Sorting validation where applicable
+HTTP VALIDATION
+
+Validate expected:
+200
+201
+202
+204
+400
+401
+403
+404
+409
+422
+429
+500
+502
+503
+504
+Only include status codes that are relevant to the actual API documentation.
+RESPONSE VALIDATION
+
+Validate:
+HTTP status
+Response headers
+Content-Type
+Response schema
+Mandatory fields
+Data types
+Null handling
+Business values
+Record count
+Pagination
+Sorting
+Duplicate records
+Unexpected fields where schema enforcement is required
+SECURITY TESTING
+
+Include API-level security checks for:
+Authentication bypass
+Authorization bypass
+Token misuse
+Missing authorization
+Invalid token
+Expired token
+Scope violations
+Sensitive information disclosure
+Secrets appearing in response
+Sensitive information appearing in logs
+CORS where applicable
+TLS/HTTPS enforcement
+HTTP method manipulation
+Parameter tampering
+Injection payload handling
+Excessive data exposure
+Rate limiting
+NEGATIVE TESTING
+
+Design realistic negative test cases based only on the documented API behavior.
+For every test case provide:
+TC_ID
+
+Module
+
+API/Endpoint
+
+HTTP Method
+
+Test Scenario
+
+Precondition
+
+Test Data
+
+Request Headers
+
+Request Parameters
+
+Request Body
+
+Expected Status Code
+
+Expected Response
+
+Validation/Assertion
+
+Priority
+
+Severity
+
+Automation Candidate
+
+Remarks
+Classify each test case:
+
+P0 - Critical
+
+P1 - High
+
+P2 - Medium
+
+P3 - Low
+Also identify:
+Smoke test cases
+Regression test cases
+Security test cases
+Negative test cases
+Data-driven test cases
+End-to-end test cases
+Tests suitable for parallel execution
+Return the final matrix in a format that can be copied directly into Excel.
+ 
+3. Prompt for Test Data
+This is the one I would especially recommend for your setup because you already use Excel-driven API automation.
+ 
+ 
+Act as an API Automation Test Data Architect.
+Based on the DailyAds / Media Research API documentation and the API test-case matrix, design a reusable test-data strategy for my Java + Rest Assured + TestNG automation framework.
+I want the framework to support Excel-driven test execution.
+Create test data categories for:
+Valid data
+Invalid data
+Boundary data
+Mandatory-field missing data
+Null data
+Empty-string data
+Invalid-format data
+Invalid-ID data
+Unauthorized data
+Expired-token scenarios
+Invalid-token scenarios
+Scope/permission scenarios
+Pagination data
+Filtering data
+Sorting data
+Duplicate data
+Rate-limit testing data
+Security negative-testing payloads
+End-to-end business-flow data
+Create an Excel structure such as:
+TestData_ID
+
+TC_ID
+
+Environment
+
+Scenario
+
+Client_ID
+
+Grant_Type
+
+Scope
+
+Endpoint
+
+HTTP_Method
+
+Header_Data
+
+Query_Params
+
+Path_Params
+
+Request_Body
+
+Expected_Status
+
+Expected_Response
+
+Expected_Error_Code
+
+Expected_Error_Message
+
+Expected_Result
+
+Execution_Flag
+
+Remarks
+Important:
+Never store the real Client Secret in Excel.
+Never store access tokens in Excel.
+Use environment variables/placeholders for secrets.
+Mask sensitive data in reports.
+Also identify which test data should be:
+
+A. Static
+
+B. Dynamic
+
+C. Generated at runtime
+
+D. Retrieved from a previous API response
+For dynamic data, explain how Rest Assured/Java should generate or capture it.
+For dependent APIs, design data chaining such as:
+Authentication
+
+→ Access Token
+
+→ Create/Get DailyAds data
+
+→ Capture ID
+
+→ Use ID in subsequent API
+
+→ Validate response
+
+→ Cleanup if required
+Do not invent fields. Base all test data on the actual API documentation supplied.
+ 
+4. Prompt to make Claude generate the actual automation
+After the above is completed, use:
+ 
+ 
+Now generate the implementation for the approved DailyAds API automation framework.
+Technology:
+
+Java 17
+
+Maven
+
+Rest Assured
+
+TestNG
+
+Jackson
+
+Allure
+
+Apache POI where required
+Implementation requirements:
+ConfigReader
+Environment configuration
+Secure credential loading
+OAuth2 TokenManager
+RequestSpecification
+ResponseSpecification
+Base API Client
+Endpoint classes
+POJO request models where useful
+POJO response models where useful
+Excel test-data reader
+Test-data provider
+Common assertion utilities
+JSON schema validation
+Logging utilities
+Sensitive-data masking
+TestNG listeners
+Allure reporting
+Retry handling for appropriate transient failures
+TestNG groups
+Parallel execution support
+CI/CD-ready Maven execution
+Use clean architecture and SOLID principles.
+Do not duplicate common authentication/request code.
+Do not hardcode:
+URLs
+Client ID
+Client Secret
+Access Token
+Environment-specific values
+Use configuration/environment variables.
+Every test should clearly show:
+Test purpose
+API request
+Expected result
+Assertions
+Do not log:
+Client Secret
+Access Token
+Authorization header
+Sensitive personal/business data
+For every generated class, explain:
+Purpose
+Why it exists
+How it connects to the framework
+Example execution command
+Do not generate fake endpoints or fields. Use only the supplied API documentation.
+ 

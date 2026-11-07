@@ -1,0 +1,133 @@
+# ============================================================================
+# MOCK config - points ONLY at the fake in-JVM target started by MockTargetHooks
+# (http://localhost:18089). Used to prove the pipeline/reports end to end without
+# touching any real system. Copy of ckyc-config.yaml with mock values.
+# Credentials: env var NAMES only (MOCK_MAKER_USER/PASS) - set any dummy value
+# in the shell for the run; never real account data.
+# ============================================================================
+
+projectName: CKYC-MOCK
+environment: LOCAL-MOCK               # fake in-JVM target, see MockTargetHooks
+baseUrl: "http://localhost:18089"
+apiBaseUrl: "http://localhost:18089"
+openApiSpecUrl: null                  # e.g. "https://ckyc-uat-api.yourbank.co.in/swagger/v1/swagger.json" — null if none
+
+authentication:
+  type: API_LOGIN                     # API_LOGIN | FORM_LOGIN | OAUTH2 | BEARER_STATIC
+  loginUrl: "/auth/login"
+  usernameField: "username"
+  passwordField: "password"
+  otpRequired: "conditional"
+  tokenJsonPath: "$.data.accessToken"
+
+roles:
+  - roleName: Maker
+    usernameEnvVar: MOCK_MAKER_USER
+    passwordEnvVar: MOCK_MAKER_PASS
+    permissions:
+      CREATE_CUSTOMER: ALLOWED
+      EDIT_CUSTOMER: ALLOWED
+      APPROVE_CUSTOMER: FORBIDDEN
+  - roleName: Checker
+    usernameEnvVar: MOCK_CHECKER_USER
+    passwordEnvVar: MOCK_CHECKER_PASS
+    permissions:
+      CREATE_CUSTOMER: FORBIDDEN
+      APPROVE_CUSTOMER: ALLOWED
+  - roleName: Admin
+    usernameEnvVar: MOCK_ADMIN_USER
+    passwordEnvVar: MOCK_ADMIN_PASS
+    permissions:
+      MANAGE_USERS: ALLOWED
+
+endpoints:
+  - id: customer.getById
+    path: "/customer/{id}"
+    method: GET
+    module: Customer
+    allowedRoles: [Maker, Checker, Admin]
+    pathParams:
+      - name: id
+        dataType: IDENTIFIER
+        mandatory: true
+    containsSensitiveData: true
+  - id: customer.create
+    path: "/customer"
+    method: POST
+    module: Customer
+    allowedRoles: [Maker]
+    bodyFields:
+      - name: panNumber
+        dataType: STRING
+        mandatory: true
+        pattern: "^[A-Z]{5}[0-9]{4}[A-Z]$"
+      - name: dob
+        dataType: DATE
+        mandatory: true
+  - id: dvs.submit
+    path: "/dvs/submit"
+    method: POST
+    module: DVS
+    allowedRoles: [Maker]
+    fileUpload: true
+  - id: checker.approve
+    path: "/checker/approve"
+    method: POST
+    module: Approval
+    allowedRoles: [Checker]
+# <<FILL ME>> — add the rest of the CKYC endpoint inventory here, or point
+# openApiSpecUrl above at CKYC's Swagger and let the discovery step generate this list.
+
+businessRules:
+  - ruleId: BR-CKYC-001
+    module: Approval
+    condition: "Maker attempts to approve a transaction they created"
+    expectedResult: "Server rejects with 403; Maker cannot self-approve"
+    severity: Critical
+    verificationMethod: API
+  - ruleId: BR-CKYC-002
+    module: Customer
+    condition: "NRI customer type submitted without required address relationship fields"
+    expectedResult: "Server returns 400 with validation error, record not created"
+    severity: Medium
+    verificationMethod: API
+# <<FILL ME>> — add CKYC's actual Maker-Checker / NRI / document-dependency rules here.
+
+documentMaster:
+  documentTypes:
+    - documentName: "<<FILL ME e.g. Aadhaar>>"
+      poiCode: "<<FILL ME>>"
+      poaCode: "<<FILL ME>>"
+      poia: true
+      allowedExtensions: [jpg, jpeg, png, pdf]
+      maxSizeMb: 5
+# <<FILL ME>> — CKYC's real Document Master (POI/POA codes) is project-specific;
+# the catalog finding VAPT-057 (Insecure File Upload) drives against this list.
+
+zap:
+  enabled: false            # flip to true once OWASP ZAP is installed and running
+  zapHost: localhost
+  zapPort: 8080
+  apiKeyEnvVar: CKYC_ZAP_API_KEY
+  scanPolicyName: "Banking-Safe-Active-Scan"
+  contextName: "CKYC-UAT"
+  reportOutputDir: "../../reports/output"
+
+database:
+  enabled: false            # leave false unless read-only DB validation is explicitly required
+  readOnly: true
+  jdbcUrl: "<<FILL ME if DB validation is in scope>>"
+  usernameEnvVar: CKYC_DB_USER
+  passwordEnvVar: CKYC_DB_PASS
+
+# Test-data ids referenced by step defs. TEST objects only — never a real customer.
+testData:
+  id: "MOCK-OWN-001"
+  foreignCustomerId: "MOCK-FOREIGN-002"
+
+scope:
+  authorizedBy: "Project owner - local mock dry run (no external target)"
+  approvalReference: "LOCAL-MOCK-ONLY"
+  approvalDate: "2026-10-31"
+  allowedEnvironments: "localhost mock only"
+  notes: "Authorized security regression testing — test accounts/data only, no destructive exploitation."

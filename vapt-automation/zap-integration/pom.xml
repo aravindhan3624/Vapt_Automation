@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.isolve.vapt</groupId>
+        <artifactId>vapt-automation-parent</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>zap-integration</artifactId>
+    <packaging>jar</packaging>
+    <name>VAPT ZAP Integration</name>
+    <description>
+        Starts/stops a local OWASP ZAP daemon (loopback only, random API key, protected mode),
+        restricts its scope to approved hosts, and reads passive-scan alerts and reports.
+        No active-scan capability in this module.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.zaproxy</groupId>
+            <artifactId>zap-clientapi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.isolve.vapt</groupId>
+            <artifactId>core-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*IT.java</include>
+                    </includes>
+                    <systemPropertyVariables>
+                        <!-- ZAP-backed integration tests run only when this is set, e.g.
+                             -Dzap.install.dir=C:\Tools\ZAP_2.17.0 -->
+                        <zap.install.dir>${zap.install.dir}</zap.install.dir>
+                        <zap.home.dir>${zap.home.dir}</zap.home.dir>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

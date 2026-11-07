@@ -1,0 +1,8 @@
+target/
+*.class
+reports/output/
+reports/evidence/*/
+!reports/evidence/README.md
+.idea/
+*.iml
+

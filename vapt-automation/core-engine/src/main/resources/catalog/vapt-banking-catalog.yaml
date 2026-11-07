@@ -1,0 +1,1464 @@
+catalog_name: Banking Domain VAPT Checklist
+source: VAPT_Banking Domain check list_Final (1).xlsx
+version: '1.0'
+findings:
+- id: VAPT-001
+  title: 'Insecure Transport: Unencrypted Communication'
+  sub_of: null
+  risk_description: Unencrypted communication exposes data to interception during transmission.
+  cwe_score: 29
+  severity: Medium
+  remediation: "1: Ensure HTTPS is maintained for all services by configuring it in both the web.config file and the IIS server.\n\nEx:\n1: Got to Web App config >> Add rule >> Rewrite Http to Https \n2: Go to IIS Server >> Routing >> binding >>Rewrite  Http to Https"
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI can verify HTTPS/TLS from HAR. Manual validates HTTP to HTTPS redirect and configuration.
+  test_steps:
+  - 1. Configure Burp Suite as the browser proxy.
+  - 2. Browse the application using the HTTPS URL.
+  - 3. Manually change the URL from https:// to http://.
+  - 4. Observe whether the application automatically redirects to HTTPS.
+  - 5. Capture both the HTTP request and HTTPS response in Burp Suite.
+  - 6. Verify that no login page or sensitive page is accessible over HTTP.
+  - 7. Check whether the Strict-Transport-Security (HSTS) header is present.
+  - 8. Verify that all resources (CSS, JS, Images, APIs) are loaded only over HTTPS.
+  - 9. Record screenshots of the HTTP redirect and response headers.
+  expected_secure_result:
+  - 1. HTTP automatically redirects to HTTPS.
+  - 2. No sensitive data is transmitted over HTTP.
+  - 3. HSTS header is enabled.
+- id: VAPT-002
+  title: Insecure word Transmission
+  sub_of: null
+  risk_description: The application configuration should ensure that SSL is used for all access controlled pages. If an application uses SSL to guarantee confidential communication with client browsers, the application configuration should make it impossible to view any access controlled page without SSL. However, it is not an uncommon problem that the configuration of the application fails to enforce the use of SSL on pages that contain sensitive data.
+  cwe_score: 319
+  severity: Medium
+  remediation: 'Use secure transport protocols: Use secure transport protocols such as HTTPS or TLS, which encrypt data transmission over the network and provide authentication mechanisms to ensure secure communication.'
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI checks HTTPS/encrypted traffic. Manual verifies sensitive data exposure scenarios.
+  test_steps:
+  - 1. Open Burp Suite Proxy.
+  - 2. Browse the complete application.
+  - 3. Verify all requests use TLS 1.2 or TLS 1.3.
+  - 4. Check response headers for HSTS.
+  - 5. Use SSL Labs or Nmap (if permitted) to identify supported TLS versions.
+  - 6. Verify weak protocols (SSLv2, SSLv3, TLS1.0, TLS1.1) are disabled.
+  - 7. Check weak cipher suites are not enabled.
+  - 8. Capture evidence.
+  expected_secure_result:
+  - 1. Only TLS 1.2/1.3 is supported.
+  - 2. Weak protocols are disabled.
+  - 3. Strong cipher suites are used.
+- id: VAPT-003
+  title: Default OTP Usage
+  sub_of: null
+  risk_description: Attackers may exploit this predictability to guess or generate valid OTPs, leading to unauthorized access.
+  cwe_score: 310
+  severity: Medium
+  remediation: Do not use default OTPs; instead, implement robust and secure OTP generation methods.
+  tested_by: Manual
+  automatable: false
+  reason: Requires OTP generation and validation testing.
+  test_steps:
+  - 1. Navigate to Login.
+  - 2. Trigger OTP generation.
+  - 3. Note the received OTP.
+  - 4. Logout.
+  - 5. Login again.
+  - 6. Generate another OTP.
+  - 7. Compare both OTP values.
+  - 8. Attempt to reuse the previous OTP.
+  - 9. Verify OTP uniqueness.
+  - 10. Capture evidence.
+  expected_secure_result:
+  - 1. Every login generates a unique OTP.
+  - 2. Old OTP cannot be reused.
+- id: VAPT-004
+  title: Improper OTP implementation
+  sub_of: null
+  risk_description: 'If OTPs are generated using predictable algorithms or have insufficient entropy, attackers may be able to predict or guess valid OTPs.
+
+    Predictable OTPs increase the likelihood of successful brute-force or guessing attacks.'
+  cwe_score: 22
+  severity: Medium
+  remediation: Utilize AES 256 encryption methodology for securing all key and sensitive information.
+  tested_by: Manual
+  automatable: false
+  reason: Requires OTP entropy, expiry, replay and bypass testing.
+  test_steps:
+  - 1. Request an OTP.
+  - 2. Wait for expiry time.
+  - 3. Enter the expired OTP.
+  - 4. Attempt multiple incorrect OTP submissions.
+  - 5. Observe retry limits.
+  - 6. Verify OTP expiration.
+  - 7. Verify OTP cannot be guessed.
+  - 8. Capture screenshots.
+  expected_secure_result:
+  - 1. OTP expires after configured time.
+  - 2. Invalid OTP attempts are limited.
+  - 3. OTP cannot be reused.
+- id: VAPT-005
+  title: OTP Bypass
+  sub_of: null
+  risk_description: An Advesary will be able to bypass the OTP and authenticate himself as a user. An Advesary may able to register and access accounts using  another mobile number without revealing his identity.
+  cwe_score: 22
+  severity: Medium
+  remediation: Implement a session handling method, ensuring the creation of a new session with each login action.
+  tested_by: Manual
+  automatable: false
+  reason: Requires authentication flow manipulation.
+  test_steps:
+  - 1. Start login.
+  - 2. Intercept OTP verification request in Burp Suite.
+  - 3. Remove OTP parameter.
+  - 4. Modify OTP value.
+  - 5. Replay the request.
+  - 6. Try skipping the OTP verification API.
+  - 7. Attempt direct access to authenticated pages.
+  - 8. Record responses.
+  expected_secure_result:
+  - 1. OTP validation cannot be bypassed.
+  - 2. Server rejects requests without valid OTP.
+- id: VAPT-006
+  title: Hardcoded sensitive information
+  sub_of: null
+  risk_description: An Advesary would use this information to plan potential attacks against the organoization and its users
+  cwe_score: 40
+  severity: Medium
+  remediation: Remove the Discontent data
+  tested_by: AI
+  automatable: true
+  reason: Can scan JS files, configs, responses for secrets/credentials.
+  test_steps:
+  - 1. Browse the application.
+  - 2. Download all JavaScript files.
+  - '3. Search for:'
+  - 4. password
+  - 5. token
+  - 6. apiKey
+  - 7. secret
+  - 8. Authorization
+  - 9. Bearer
+  - 10. Client Secret
+  - 11. Review config.js.
+  - 12. Review source maps.
+  - 13. Review HTML source.
+  - 14. Review exposed JSON responses.
+  - 15. Validate whether discovered credentials are usable (only in authorized environments).
+  - 16. Capture evidence.
+  expected_secure_result:
+  - 1. No hardcoded credentials.
+  - 2. No API secrets.
+  - 3. No encryption keys.
+  - 4. No test accounts.
+- id: VAPT-007
+  title: Session Fixation
+  sub_of: null
+  risk_description: An advesary can take over (Hijack) the session by using the same session ID and use it to their advantage
+  cwe_score: 20
+  severity: Medium
+  remediation: Implement a session handling method, ensuring the creation of a new session with each login action.
+  tested_by: Manual
+  automatable: false
+  reason: Requires browser session comparison before/after login.
+  test_steps:
+  - 1. Open the application.
+  - 2. Capture the session cookie before login.
+  - 3. Login successfully.
+  - 4. Compare session IDs before and after login.
+  - 5. Logout.
+  - 6. Login again.
+  - 7. Compare the newly issued session ID.
+  - 8. Attempt to reuse the old session.
+  - 9. Capture evidence.
+  expected_secure_result:
+  - 1. New session ID is generated after login.
+  - 2. Old session becomes invalid.
+- id: VAPT-008
+  title: Server Version Disclosure
+  sub_of: null
+  risk_description: This information might help an adversary gain a greater understanding of systems in use and potentially develop further attacks targeted at the specific version of the services
+  cwe_score: 20
+  severity: Medium
+  remediation: "In IIS server \nDisregard the website and eliminate the disclosure of the IIS version from the response."
+  tested_by: AI
+  automatable: true
+  reason: Can identify Server headers/framework banners.
+  test_steps:
+  - 1. Browse multiple pages.
+  - 2. Inspect all response headers.
+  - '3. Check for:'
+  - 4. Server
+  - 5. X-Powered-By
+  - 6. ASP.NET Version
+  - 7. PHP Version
+  - 8. Tomcat
+  - 9. IIS
+  - 10. Trigger error pages (404, 405, 500).
+  - 11. Check whether framework versions are disclosed.
+  - 12. Capture screenshots.
+  expected_secure_result:
+  - 1. Server banner removed.
+  - 2. Framework versions hidden.
+  - 3. No version disclosure.
+- id: VAPT-009
+  title: Cross domain Script Include
+  sub_of: null
+  risk_description: An attacker can modify the script to perform malicious actions within your application.
+  cwe_score: 22
+  severity: Medium
+  remediation: It is advisable to avoid including scripts from untrusted sources whenever possible.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI identifies external scripts; manual validates trust/SRI/security impact.
+  test_steps:
+  - 1. Open Developer Tools.
+  - 2. Review all loaded JavaScript files.
+  - 3. Identify third-party domains.
+  - 4. Verify whether external scripts use HTTPS.
+  - 5. Check for Subresource Integrity (SRI).
+  - 6. Review CSP directives.
+  - 7. Verify only trusted domains are allowed.
+  - 8. Capture screenshots.
+  expected_secure_result:
+  - 1. Only trusted external scripts are loaded.
+  - 2. HTTPS is enforced.
+  - 3. SRI is implemented where applicable.
+- id: VAPT-010
+  title: Missing Content Security Policy
+  sub_of: null
+  risk_description: In abense of this header, an attacker can exploit client-side vulnerabilites such as cross-site scripting, clickjacking, and cross-site request forgery
+  cwe_score: 22
+  severity: Medium
+  remediation: 'IIS >> Employ the new header "Content Security Policy: default-src."'
+  tested_by: AI
+  automatable: true
+  reason: Header analysis can validate CSP presence/configuration.
+  test_steps:
+  - 1. Browse every major page.
+  - 2. Inspect response headers.
+  - 3. Verify the Content-Security-Policy header is present.
+  - '4. Review directives:'
+  - 5. default-src
+  - 6. script-src
+  - 7. object-src
+  - 8. style-src
+  - 9. frame-src
+  - 10. Verify unsafe-inline and unsafe-eval are not used unless justified.
+  - 11. Confirm CSP is applied to HTML documents.
+  - 12. Capture screenshots.
+  expected_secure_result:
+  - 1. CSP is present on all HTML pages.
+  - 2. No unsafe directives.
+  - 3. Only trusted sources are allowed.
+- id: VAPT-011
+  title: Traffic Decryption
+  sub_of: null
+  risk_description: Traffic decryption raises significant privacy concerns as it involves intercepting and inspecting the content of encrypted communication. Users may be unaware that their data is being decrypted.
+  cwe_score: 40
+  severity: Medium
+  remediation: Utilize AES 256 encryption methodology for securing all key and sensitive information.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI identifies encryption implementation; manual validates cryptographic weakness.
+  test_steps:
+  - 1. Open Burp Suite and configure the browser to use Burp as the proxy.
+  - 2. Browse to the application's login page.
+  - 3. Capture the initial request and note the Session ID (JSESSIONID/PHPSESSID/ASP.NET Session ID) issued before login.
+  - 4. Without closing the browser, log in using valid credentials.
+  - 5. Capture the authentication response.
+  - 6. Compare the Session ID before login and after successful login.
+  - 7. Log out from the application.
+  - 8. Log in again using the same browser session.
+  - 9. Compare the Session ID issued after the second login.
+  - 10. Attempt to manually reuse the pre-authentication Session ID by editing the cookie in Burp Repeater.
+  - 11. Observe whether the application accepts the old Session ID.
+  expected_secure_result:
+  - 1. A completely new Session ID is generated after successful authentication.
+  - 2. Old Session IDs become invalid.
+  - 3. Session fixation is not possible.
+- id: VAPT-012
+  title: No Pragma Http header set
+  sub_of: null
+  risk_description: If the application is storing responses fdr many requests having sensitive data in local cache for longer period of time, then data loss and confidentiality beach of data is possible
+  cwe_score: 22
+  severity: Medium
+  remediation: 'IIS >> Employ the new header "Pragma: no-cache"'
+  tested_by: AI
+  automatable: true
+  reason: Header presence can be checked from responses.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-013
+  title: Shoulder Surfing of Critical Data
+  sub_of: null
+  risk_description: shoulder surfing attack describes a situation where the attacker can physically view the device screen and keypad to obtain personal information. It is one of the few attack methods requiring the attacker to be physically close to the victim to succeed.
+  cwe_score: 639
+  severity: High
+  remediation: Add masking to the Entered OTP.
+  tested_by: Manual
+  automatable: false
+  reason: Requires UI/device testing.
+  test_steps:
+  - 1. Open the application login page or any screen where sensitive information (OTP, Password, PIN, CVV, Aadhaar, etc.) is entered.
+  - 2. Verify whether the sensitive input field masks the entered characters (e.g., ●●●● or ****).
+  - 3. Check whether OTP or password remains visible after typing.
+  - 4. Click the "Show Password" icon (if available) and verify that it works only on user action.
+  - 5. Observe whether browser auto-complete or predictive text is enabled for sensitive fields.
+  - 6. Verify whether copy-paste is allowed for OTP fields (based on application security policy).
+  - 7. Verify whether screenshots can expose sensitive values (where applicable).
+  - 8. Observe the screen from different viewing angles to determine whether sensitive information is easily visible (shoulder surfing risk).
+  - 9. Capture screenshots as evidence.
+  expected_secure_result:
+  - 1. Passwords and OTPs are masked by default.
+  - 2. Sensitive fields disable autocomplete and predictive text where applicable.
+  - 3. Sensitive information is not unnecessarily displayed after entry.
+  - 4. Show Password functionality is controlled and user-initiated.
+- id: VAPT-014
+  title: Cookies attributes
+  sub_of: null
+  risk_description: Web Cookies (herein referred to as cookies) are often a key attack vector for malicious users (typically targeting other users) and the application should always take due diligence to protect cookies.
+  cwe_score: 614
+  severity: High
+  remediation: The secure flag should be set on all cookies that are used for transmitting sensitive data when accessing content over HTTPS. If cookies are used to transmit session tokens, then areas of the application that are accessed over HTTPS should employ their own session handling mechanism, and the session tokens used should never be transmitted over unencrypted communications.
+  tested_by: AI
+  automatable: true
+  reason: Secure, HttpOnly, SameSite validation from responses.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-015
+  title: Session Fixation
+  sub_of: null
+  risk_description: Session Fixation is an attack that permits an attacker to hijack a valid user session. The attack explores a limitation in the way the web application manages the session ID, more specifically the vulnerable web application.
+  cwe_score: 384
+  severity: Medium
+  remediation: Implement session timeout after 10 minutes (for Banking Sites) or as per security policy.
+  tested_by: Manual
+  automatable: false
+  reason: Requires waiting period and session expiry testing.
+  test_steps:
+  - 1. Login to the application.
+  - 2. Open Burp Suite HTTP History.
+  - 3. Do not perform any activity.
+  - 4. Wait for the configured timeout period (10–15 minutes or as per application policy).
+  - 5. After timeout, click any menu or refresh the page.
+  - 6. Observe whether the application redirects to the login page.
+  - 7. Capture the server response.
+  - 8. Verify whether the previous authentication token becomes invalid.
+  - 9. Attempt to reuse the old authentication token through Burp Repeater.
+  expected_secure_result:
+  - 1. User is automatically logged out.
+  - 2. Previous session/token becomes invalid.
+  - 3. Access is denied until re-authentication.
+- id: VAPT-016
+  title: Restrict direct URL Access to internal Pages
+  sub_of: null
+  risk_description: If your application fails to appropriately restrict URL access, security can be compromised through a technique called forced browsing. Forced browsing can be a very serious problem if an attacker tries to gather sensitive data through a web browser by requesting specific pages, or data files.
+  cwe_score: 425
+  severity: High
+  remediation: Ensure that an internal error is triggered when an invalid path is appended to the URL.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI checks unauthorized responses; manual tests forced browsing.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-017
+  title: Critical/Sensitive Information Disclosure
+  sub_of: null
+  risk_description: Information disclosure, also known as information leakage, is when a website unintentionally reveals sensitive information to its users.
+  cwe_score: 200
+  severity: Medium
+  remediation: Preventing information disclosure completely is tricky due to the huge variety of ways in which it can occur. However, there are some general best practices that you can follow to minimize the risk of these kinds of vulnerability creeping into your own websites.
+  tested_by: AI
+  automatable: true
+  reason: Headers, errors, configs, responses can be reviewed.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-018
+  title: Host Header manipulation
+  sub_of: null
+  risk_description: Header manipulation is the insertion of malicious data, which has not been validated, into a HTTP response header. One example of header manipulation is a HTTP response splitting attack. This type of attack exploits applications that allow a carriage return or line feed as input.
+  cwe_score: 113
+  severity: Medium
+  remediation: Avoid using the Host header altogether in server-side code. Double-check whether each URL really needs to be absolute. You will often find that you can just use a relative URL instead. This simple change can help you prevent web cache poisoning vulnerabilities in particular.
+  tested_by: Manual
+  automatable: false
+  reason: Requires crafted Host header attacks.
+  test_steps:
+  - 1. Steps to Test
+  - 2. Capture any authenticated request in Burp Suite.
+  - 3. Send the request to Burp Repeater.
+  - 4. Modify the Host header to a fake domain.
+  - '5. Example: Host: attacker.com'
+  - 6. Send the request.
+  - '7. Repeat using: Host: evil.local'
+  - 8. Observe redirects, password reset links, response headers and HTML.
+  - 9. Check whether the modified Host value appears anywhere in the response.
+  expected_secure_result: []
+- id: VAPT-019
+  title: Denial of Service
+  sub_of: null
+  risk_description: A Denial-of-Service (DoS) attack is an attack meant to shut down a machine or network, making it inaccessible to its intended users. DoS attacks accomplish this by flooding the target with traffic, or sending it information that triggers a crash. In both instances, the DoS attack deprives legitimate users (i.e. employees, members, or account holders) of the service or resource they expected.
+  cwe_score: 113
+  severity: Medium
+  remediation: 'Stopping an active DDoS attack can be hard and may affect your legitimate users. This is why it’s important to take a preemptive approach. In addition to the preventive measures mentioned below, you should also create an emergency DDoS incident response plan, as even the best defenses can sometimes succumb to sophisticated attacks.
+
+    Reference: https://www.onelogin.com/learn/ddos-attack'
+  tested_by: Manual
+  automatable: false
+  reason: Requires load/stress testing tools.
+  test_steps:
+  - 1. Obtain written approval from the client before performing any stress or DoS-related testing.
+  - 2. Identify critical application endpoints (e.g., Login, Search, Dashboard, Report Generation, File Upload).
+  - 3. Configure Burp Suite Intruder, JMeter, or another approved load-testing tool.
+  - 4. Send a controlled number of concurrent requests (start with a low volume).
+  - 5. Gradually increase the request rate while monitoring application behavior.
+  - '6. Observe:'
+  - 7. Response time
+  - 8. CPU usage (if monitoring is available)
+  - 9. Memory usage
+  - 10. Error responses (500, 503, 504)
+  - 11. Timeouts
+  - '12. Verify whether the application implements:'
+  - 13. Rate limiting
+  - 14. Connection throttling
+  - 15. IP blocking
+  - 16. Web Application Firewall (WAF) protections
+  - 17. Stop testing immediately if service degradation is observed.
+  - 18. Record all observations and screenshots.
+  expected_secure_result:
+  - 1. The application continues functioning under the approved test load.
+  - 2. Rate limiting or throttling mechanisms activate appropriately.
+  - 3. No application crash, memory exhaustion, or service outage occurs.
+  - 4. Legitimate users remain able to access the application.
+- id: VAPT-020
+  title: CAPTCHA Related Vulnerabilities
+  sub_of: null
+  risk_description: CAPTCHA bypass techniques, such as computer-assisted tools and crowdsourcing, have been developed by hackers, causing CAPTCHA providers to continually monitor and improve their services. CAPTCHA security, like many other security areas, is a fight of innovation between hackers and security professionals.
+  cwe_score: 693
+  severity: High
+  remediation: Ensure that captchas response is at servers level and is not exposed on the HTML web pages code, also, ensure that captcha can not be read by an OCR.
+  tested_by: Manual
+  automatable: false
+  reason: Requires CAPTCHA bypass attempts.
+  test_steps:
+  - 1. Navigate to the login page.
+  - 2. Verify whether CAPTCHA is displayed.
+  - 3. Attempt login without solving the CAPTCHA.
+  - 4. Modify the CAPTCHA parameter using Burp Repeater.
+  - 5. Replay an old CAPTCHA response.
+  - 6. Submit invalid CAPTCHA values.
+  - 7. Perform multiple failed login attempts.
+  - 8. Verify whether CAPTCHA is enforced after repeated failures.
+  - 9. Attempt to bypass CAPTCHA by removing the parameter.
+  expected_secure_result:
+  - 1. CAPTCHA validation occurs on the server.
+  - 2. Replay is rejected.
+  - 3. CAPTCHA cannot be bypassed.
+- id: VAPT-021
+  title: Cross site request forgery
+  sub_of: null
+  risk_description: Cross site request forgery (CSRF) is vulnerability where an attacker performs actions while impersonating another user.
+  cwe_score: 352
+  severity: Medium
+  remediation: The most popular method to prevent Cross-site Request Forgery is to use a challenge token that is associated with a particular user and that is sent as a hidden value or encrypt in every state-changing form in the web app.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI checks tokens/header design; manual validates exploitability.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-022
+  title: Cross site Scripting
+  sub_of: null
+  risk_description: Cross site scripting (XSS) is an attack in which an attacker injects malicious executable scripts into the code of a trusted application or website. Attackers often initiate an XSS attack by sending a malicious link to a user and enticing the user to click it.
+  cwe_score: 79
+  severity: Medium
+  remediation: Recommended to enable X-XSS-Protection and set the value as “1; mode=block”
+  tested_by: Manual
+  automatable: false
+  reason: Requires payload execution (Stored/Reflected/DOM).
+  test_steps:
+  - 1. Identify all user input fields.
+  - 2. Intercept the request in Burp Suite.
+  - 3. Insert common XSS payloads.
+  - '4. Example: <script>alert(1)</script>, <img src=x onerror=alert(1)>'
+  - 5. Submit the request.
+  - 6. Observe whether the payload executes.
+  - '7. Repeat for:'
+  - 8. Search
+  - 9. Comments
+  - 10. Profile
+  - 11. File Name
+  - 12. URL Parameters
+  - 13. HTTP Headers
+  - 14. Test Reflected XSS.
+  - 15. Test Stored XSS.
+  - 16. Test DOM XSS using browser Developer Tools.
+  expected_secure_result:
+  - 1. Payload is encoded or sanitized.
+  - 2. No JavaScript execution occurs.
+- id: VAPT-023
+  title: Mandatory Server Configuration
+  sub_of: null
+  risk_description: Testing for Mandatory Server Configuration vulnerabilities typically involves checking whether a web server or application server is configured to enforce mandatory security measures.
+  cwe_score: 656
+  severity: High
+  remediation: Upgrade jquery to version 3.5.0 or higher
+  tested_by: AI
+  automatable: true
+  reason: Can identify libraries/version from JS.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-024
+  title: HTTP Splitting/Smuggling
+  sub_of: null
+  risk_description: This section illustrates examples of attacks that leverage specific features of the HTTP protocol, either by exploiting weaknesses of the web application or peculiarities in the way different agents interpret HTTP messages.
+  cwe_score: 444
+  severity: High
+  remediation: While manipulating the any headers server should not respond and should displayed with invalid request with 400 or 404 server errors.
+  tested_by: Manual
+  automatable: false
+  reason: Requires crafted HTTP requests.
+  test_steps:
+  - 1. Open Burp Repeater.
+  - 2. Enable HTTP/1.1 mode.
+  - 3. Send CL.TE payloads.
+  - '4. Example:  Content-Length,  Transfer-Encoding'
+  - 5. Send TE.CL payloads.
+  - 6. Observe server responses.
+  - 7. Check response timing.
+  - 8. Verify whether subsequent requests are affected.
+  - 9. Repeat using Burp HTTP Request Smuggler extension.
+  expected_secure_result:
+  - 1. Server rejects malformed requests.
+  - 2. No request desynchronization occurs.
+- id: VAPT-025
+  title: Clickjacking attack
+  sub_of: null
+  risk_description: Clickjacking is an attack that fools users into thinking they are clicking on one thing when they are actually clicking on another. Its other name, user interface (UI) redressing, better describes what is going on
+  cwe_score: 444
+  severity: High
+  remediation: '1: Implement the X- Frame Option for the response and set the value as “DENY”
+
+    2: Implement the “Content-Security-Policy: default-src ''self'';”
+
+    3: Set the Content Type value as “Application json; charset=utf-8”'
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI validates headers; manual validates UI framing.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-026
+  title: Parameter tampering
+  sub_of: null
+  risk_description: Parameter tampering is a type of web-based cyber-attack in which certain parameters in a URL are changed without a user's authorization.
+  cwe_score: 749
+  severity: High
+  remediation: "1: Sensitive Data encryption must be implemented. \n2: Response should be 404 or 400 request from the server."
+  tested_by: Manual
+  automatable: false
+  reason: Requires request modification and validation testing.
+  test_steps:
+  - 1. Login to the application.
+  - 2. Capture an authenticated request.
+  - 3. Send it to Burp Repeater.
+  - '4. Modify important parameters such as:'
+  - 5. User ID
+  - 6. Role
+  - 7. Account Number
+  - 8. Amount
+  - 9. Customer ID
+  - 10. Submit the modified request.
+  - 11. Observe whether unauthorized changes are accepted.
+  - 12. Repeat for hidden fields and JSON parameters.
+  - 13. Verify server-side validation.
+  expected_secure_result:
+  - 1. Unauthorized parameter changes are rejected.
+  - 2. Server validates all input values.
+- id: VAPT-027
+  title: login module implementation
+  sub_of: null
+  risk_description: "There are several types of vulnerabilities that can be associated with the implementation of a login module in a web application. \nFind the following types and actions to be taken below"
+  cwe_score: 287
+  severity: Medium
+  remediation: "1: Weak Password Policies\n2: Injection Attacks\n3: Brute Force Attacks\n In this attack user can able to login with multiple times to check the account or login are have limit login validations.\n4: While attempt of more than 3 invalid OTP, account should be locked"
+  tested_by: Manual
+  automatable: false
+  reason: Requires brute force, password policy, lockout testing.
+  test_steps:
+  - 1. Open Burp Intruder.
+  - 2. Capture the login request.
+  - 3. Configure a username payload.
+  - 4. Configure a password payload.
+  - 5. Launch a controlled brute-force attack.
+  - '6. Observe:'
+  - 7. Lockout
+  - 8. Delay
+  - 9. CAPTCHA
+  - 10. Error Messages
+  - 11. Verify account lockout threshold.
+  - 12. Confirm logging of repeated failures.
+  expected_secure_result:
+  - 1. Account locks after configured failures.
+  - 2. Rate limiting is enforced.
+  - 3. Brute-force attack is blocked.
+- id: VAPT-028
+  title: Default Accounts
+  sub_of: 'login module implementation '
+  risk_description: null
+  cwe_score: null
+  severity: Medium
+  remediation: Check for default account names and passwords in use
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI finds exposed credentials; manual verifies login.
+  test_steps:
+  - 1. Review application documentation and installation guides for default credentials.
+  - 2. Check JavaScript files, configuration files, and API responses for hardcoded usernames or passwords.
+  - '3. Attempt login using common default credentials such as:'
+  - 4. admin/admin
+  - 5. admin/admin123
+  - 6. administrator/password
+  - 7. test/test
+  - 8. guest/guest
+  - 9. Review publicly accessible configuration files (config.js, .env, etc.).
+  - 10. Verify whether any disclosed credentials authenticate successfully.
+  - 11. Capture login requests and responses in Burp Suite.
+  - 12. Record successful or failed authentication attempts.
+  expected_secure_result:
+  - 1. No default credentials are accepted.
+  - 2. No hardcoded credentials are exposed.
+  - 3. Installation accounts are removed or disabled.
+- id: VAPT-029
+  title: Username
+  sub_of: 'login module implementation '
+  risk_description: null
+  cwe_score: null
+  severity: Medium
+  remediation: 'Ensure that the username is not public (or “wallet”) information
+
+    such as email or SSN.'
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI reviews responses; manual validates enumeration.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-030
+  title: Password Quality
+  sub_of: 'login module implementation '
+  risk_description: null
+  cwe_score: null
+  severity: Medium
+  remediation: Ensure that the password complexity makes guessing passwords difficult.
+  tested_by: Manual
+  automatable: false
+  reason: Requires password policy testing.
+  test_steps:
+  - 1. Navigate to the user registration or password change page.
+  - '2. Attempt to create passwords that violate the password policy:'
+  - 3. 12345678
+  - 4. password
+  - 5. admin123
+  - 6. abcdefgh
+  - 7. only lowercase
+  - 8. only uppercase
+  - '9. Test passwords without:'
+  - 10. Uppercase letters
+  - 11. Lowercase letters
+  - 12. Numbers
+  - 13. Special characters
+  - 14. Verify minimum and maximum password length.
+  - 15. Attempt to reuse an old password if applicable.
+  - 16. Observe validation messages.
+  - 17. Capture evidence.
+  expected_secure_result:
+  - 1. Weak passwords are rejected.
+  - 2. Password policy is enforced.
+  - 3. Password reuse is prevented.
+- id: VAPT-031
+  title: Password Reset
+  sub_of: 'login module implementation '
+  risk_description: null
+  cwe_score: null
+  severity: Medium
+  remediation: 'Ensure that user must respond to a secret answer / secret question or
+
+    other predetermined information before passwords can be reset.'
+  tested_by: Manual
+  automatable: false
+  reason: Requires reset workflow validation.
+  test_steps:
+  - 1. Navigate to the password reset page.
+  - 2. Verify whether secret questions are used.
+  - 3. Attempt to guess common answers.
+  - 4. Test whether answers are case-sensitive.
+  - 5. Check whether secret questions reveal sensitive information.
+  - 6. Attempt repeated guessing.
+  - 7. Capture responses.
+  expected_secure_result:
+  - 1. Secret questions are not used.
+  - 2. Secure reset methods (OTP, Email Link, MFA) are implemented.
+- id: VAPT-032
+  title: Password Lockout
+  sub_of: 'login module implementation '
+  risk_description: null
+  cwe_score: null
+  severity: Medium
+  remediation: 'Ensure that the users account is locked out for a period of time
+
+    when the incorrect password is
+
+    entered more that a specific
+
+    number of times (usually 5).'
+  tested_by: Manual
+  automatable: false
+  reason: Requires multiple failed attempts.
+  test_steps:
+  - 1. Capture the login request.
+  - 2. Submit incorrect passwords repeatedly.
+  - '3. Observe after:'
+  - 3 attempts
+  - 5 attempts
+  - 10 attempts
+  - 4. Verify whether the account is temporarily locked.
+  - 5. Wait for the lockout duration.
+  - 6. Attempt login again.
+  - 7. Review server responses.
+  - 8. Capture screenshots.
+  expected_secure_result:
+  - 1. Account locks after configured failed attempts.
+  - 2. Lockout duration is enforced.
+  - 3. Legitimate login is restored only after timeout or administrator reset.
+- id: VAPT-033
+  title: Password Structure
+  sub_of: 'login module implementation '
+  risk_description: null
+  cwe_score: null
+  severity: Medium
+  remediation: 'Ensure that special meta characters cannot be used within the
+
+    password'
+  tested_by: Manual
+  automatable: false
+  reason: Requires password policy testing.
+  test_steps:
+  - 1. Change the password.
+  - '2. Include multiple special characters: @, $, %, ^, &'
+  - 3. Verify acceptance.
+  - 4. Login using the updated password.
+  - 5. Confirm authentication succeeds.
+  expected_secure_result:
+  - 1. Special characters are accepted.
+  - 2. Password functions correctly.
+- id: VAPT-034
+  title: Blank Passwords
+  sub_of: 'login module implementation '
+  risk_description: null
+  cwe_score: null
+  severity: Medium
+  remediation: Ensure that passwords are not blank
+  tested_by: Manual
+  automatable: false
+  reason: Requires login validation attempts.
+  test_steps:
+  - 1. Leave the password field blank.
+  - 2. Submit the login request.
+  - '3. Repeat with:'
+  - 4. Spaces only
+  - 5. Tabs
+  - 6. NULL values using Burp Repeater
+  - 7. Observe responses.
+  - 8. Capture screenshots.
+  expected_secure_result:
+  - 1. Blank passwords are rejected.
+  - 2. Proper validation messages are displayed.
+- id: VAPT-035
+  title: OTP Related Issues
+  sub_of: null
+  risk_description: 'Information disclosure, also known as information leakage, is when a website unintentionally reveals sensitive information to its users. '
+  cwe_score: 294
+  severity: Medium
+  remediation: "1: The application should properly implement the OTP functionality in the application.   \n2: There should be proper validation of OTP at server side."
+  tested_by: Manual
+  automatable: false
+  reason: Requires OTP workflow testing.
+  test_steps:
+  - 1. Request an OTP.
+  - 2. Enter an incorrect OTP.
+  - 3. Enter an expired OTP.
+  - 4. Attempt OTP replay.
+  - 5. Attempt OTP reuse.
+  - 6. Modify the OTP value in Burp Repeater.
+  - 7. Attempt OTP brute force.
+  - 8. Capture responses.
+  expected_secure_result:
+  - 1. OTP expires correctly.
+  - 2. OTP cannot be reused.
+  - 3. Replay attacks fail.
+- id: VAPT-036
+  title: Local File inclusion
+  sub_of: null
+  risk_description: 'An attacker would be able to get access to the following by exploiting LFI Vulnerability: Information Disclosure of files stored in Web Server. Passwords/Database Access. Log Files'
+  cwe_score: 98
+  severity: Medium
+  remediation: 'Server error should be triggred when try to manipulate the URL path with local file path.
+
+
+    Ex: http://www.URL.com/preview.php?file=ef1710en.html
+
+    Ex: http://www.URL.com/preview.php?file=../../../../etc/passwd'
+  tested_by: Manual
+  automatable: false
+  reason: Requires payload/path traversal testing.
+  test_steps:
+  - 1. Identify parameters that reference files.
+  - 2. Intercept the request.
+  - '3. Test payloads such as: "../../../../etc/passwd", "..\..\..\windows\win.ini"'
+  - 4. Observe server responses.
+  - 5. Test URL-encoded payloads.
+  - 6. Capture evidence.
+  expected_secure_result:
+  - 1. File inclusion is blocked.
+  - 2. Generic error message is returned.
+- id: VAPT-037
+  title: Remote File inclusion
+  sub_of: null
+  risk_description: The consequences of a successful RFI attack include information theft, compromised servers and a site takeover that allows for content modification.
+  cwe_score: 829
+  severity: High
+  remediation: 'Server error should be triggred when try to manipulate the URL path with remote file path
+
+    Ex: http://www.URL.com/file=http://bingo.com/malicous_page'
+  tested_by: Manual
+  automatable: false
+  reason: Requires remote file payload testing.
+  test_steps:
+  - 1. Locate file or URL parameters.
+  - 2. Replace values with external URLs.
+  - '3. Example:  http://attacker.com/test.txt'
+  - 4. Observe responses.
+  - 5. Test HTTPS URLs.
+  - 6. Capture evidence.
+  expected_secure_result:
+  - 1. Remote files cannot be loaded.
+  - 2. External URLs are rejected.
+- id: VAPT-038
+  title: Directory Traversal / Directory Listing
+  sub_of: null
+  risk_description: 'Directory traversal can lead to unauthorized access of sensitive information stored in files outside of the web root directory. This could include: system files, configuration files, or even user data. The unauthorized access of confidential data is a direct breach of privacy and can lead to information theft.'
+  cwe_score: 22
+  severity: Medium
+  remediation: Should displayed server error 404 or 400 instead of displaying any other pages to give chance to attack.
+  tested_by: Manual
+  automatable: false
+  reason: Requires path manipulation.
+  test_steps:
+  - 1. Identify download or file path parameters.
+  - 2. Test traversal payloads.
+  - '3. Examples: "../../../", "..%2f..%2f", "..%252f"'
+  - 4. Observe responses.
+  - 5. Attempt directory listing.
+  - 6. Capture evidence.
+  expected_secure_result:
+  - 1. Directory traversal is blocked.
+  - 2. Sensitive files cannot be accessed.
+- id: VAPT-039
+  title: 'Credentials transport over an encrypted
+
+    channel'
+  sub_of: null
+  risk_description: '-'
+  cwe_score: 311
+  severity: Medium
+  remediation: Ensure that usernames and passwords are sent over an encrypted channel.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI checks HTTPS; manual validates login flows.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-040
+  title: Configure managetment
+  sub_of: null
+  risk_description: Backup files
+  cwe_score: 15
+  severity: Medium
+  remediation: 'Ensure that no backup files of source code are accessible on the
+
+    publicly accessible part of the
+
+    application.'
+  tested_by: Manual
+  automatable: false
+  reason: Requires file/path enumeration.
+  test_steps:
+  - '1. Browse for common backup files:'
+  - 2. backup.zip
+  - 3. backup.tar
+  - 4. config.bak
+  - 5. web.config.old
+  - 6. .git
+  - 7. Use Burp or ffuf for directory enumeration.
+  - 8. Verify responses.
+  - 9. Capture evidence.
+  expected_secure_result:
+  - 1. Backup files are inaccessible.
+  - 2. Source code is not exposed.
+- id: VAPT-041
+  title: Error handling
+  sub_of: null
+  risk_description: Application Error Messages
+  cwe_score: 15
+  severity: Medium
+  remediation: Ensure that the application does not present application error messages to an attacker that could be used in an attack.
+  tested_by: AI
+  automatable: true
+  reason: Can identify verbose errors/framework leaks.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-042
+  title: Error handling
+  sub_of: null
+  risk_description: 'User Error Messages '
+  cwe_score: 15
+  severity: Medium
+  remediation: 'Ensure that the application does not present user error messages to
+
+    an attacker that could be used in an attack.
+
+    This typically occurs when applications return error messages such as “User does not exist” or “User Correct, Password Incorrect”'
+  tested_by: Manual
+  automatable: false
+  reason: Requires invalid login testing.
+  test_steps:
+  - '1. Attempt login using:'
+  - 2. Invalid username
+  - 3. Valid username with wrong password
+  - 4. Compare responses.
+  - '5. Observe:'
+  - 6. Response body
+  - 7. Status code
+  - 8. Response size
+  - 9. Response time
+  - 10. Capture evidence.
+  expected_secure_result:
+  - 1. Same response is returned for all invalid login attempts.
+  - 2. Usernames cannot be enumerated.
+- id: VAPT-043
+  title: Data Protection
+  sub_of: null
+  risk_description: Sensitive Data in HTML
+  cwe_score: 200
+  severity: Medium
+  remediation: 'Ensure that there is no sensitive data in the HTML (cached in the
+
+    browser history) that could lead an
+
+    attacker to mount a focused attack.'
+  tested_by: AI
+  automatable: true
+  reason: Can inspect HTML/cache headers/responses.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-044
+  title: Data Protection
+  sub_of: null
+  risk_description: 'Data Storage '
+  cwe_score: 201
+  severity: Medium
+  remediation: Ensure where required, data is protected to protect its confidentiality and integrity.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI reviews encryption indicators; manual validates storage security.
+  test_steps:
+  - AI
+  expected_secure_result: []
+- id: VAPT-045
+  title: Input validations
+  sub_of: null
+  risk_description: 'Script Injection '
+  cwe_score: 79
+  severity: Medium
+  remediation: 'Ensure that any part of the application that allows input does
+
+    not process scripts as part of the input.'
+  tested_by: Manual
+  automatable: false
+  reason: Requires XSS payload execution.
+  test_steps:
+  - 1. Test every input field.
+  - '2. Submit:'
+  - 3. <script>alert(1)</script>
+  - 4. <img src=x onerror=alert(1)>
+  - 5. <svg/onload=alert(1)>
+  - 6. Verify HTML encoding.
+  - 7. Observe execution.
+  - 8. Capture screenshots.
+  expected_secure_result:
+  - 1. All inputs are sanitized.
+  - 2. No payload executes.
+- id: VAPT-046
+  title: Input validations SQL
+  sub_of: null
+  risk_description: SQL Injection
+  cwe_score: 89
+  severity: Medium
+  remediation: 'Ensure the application will not process SQL commands from the
+
+    user.'
+  tested_by: Manual
+  automatable: false
+  reason: Requires SQL payload testing.
+  test_steps:
+  - 1. Capture the request.
+  - '2. Test SQL payloads:'
+  - 3. '
+  - 4. ' OR '1'='1
+  - 5. UNION SELECT
+  - 6. ORDER BY
+  - 7. Observe responses.
+  - 8. Use Burp Scanner or SQLMap (authorized environments only).
+  - 9. Capture evidence.
+  expected_secure_result:
+  - 1. Queries are parameterized.
+  - 2. SQL payloads are rejected.
+- id: VAPT-047
+  title: Input validations OS
+  sub_of: null
+  risk_description: OS Command injections
+  cwe_score: 78
+  severity: Medium
+  remediation: "Ensure the applications will not process operating system\ncommands from the user. \n\nThis typically includes issues such as path traversal, spawning command shells and OS functions."
+  tested_by: Manual
+  automatable: false
+  reason: Requires command payload execution.
+  test_steps:
+  - 1. Identify input parameters.
+  - '2. Test payloads:'
+  - 3. |
+  - 4. &
+  - 5. ;
+  - 6. && whoami
+  - 7. | id
+  - 8. Observe server responses.
+  - 9. Capture evidence.
+  expected_secure_result:
+  - 1. Commands are not executed.
+  - 2. Input is validated.
+- id: VAPT-048
+  title: Input validations LDAP
+  sub_of: null
+  risk_description: LDAP injection
+  cwe_score: 90
+  severity: Medium
+  remediation: 'Ensure the application will not process LDAP commands form
+
+    the user.'
+  tested_by: Manual
+  automatable: false
+  reason: Requires LDAP payload testing.
+  test_steps:
+  - 1. Identify LDAP authentication fields.
+  - '2. Test payloads such as:'
+  - 3. *
+  - 4. *)(uid=*)
+  - 5. admin)(&)
+  - 6. Observe authentication responses.
+  - 7. Capture evidence.
+  expected_secure_result:
+  - 1. LDAP queries are parameterized.
+  - 2. Authentication bypass is not possible.
+- id: VAPT-049
+  title: API Security Testing – Broken Object Level Authorization (BOLA/IDOR)
+  sub_of: null
+  risk_description: Unauthorized users may access another user's/customer's data by modifying object identifiers.
+  cwe_score: 639
+  severity: High
+  remediation: 'Verify all API endpoints enforce user-level and role-level authorization for object access. Example: Change customer ID/account ID/document ID and verify response.'
+  tested_by: Manual
+  automatable: false
+  reason: AI can identify API endpoints from HAR and highlight possible IDOR areas. Actual validation requires multiple users and request manipulation.
+  test_steps:
+  - 1. Login using User A.
+  - 2. Browse customer records or transactions.
+  - 3. Capture a request containing an object identifier (Customer ID, Account ID, Transaction ID, Document ID, etc.).
+  - 4. Send the request to Burp Repeater.
+  - 5. Replace the identifier with another valid user's identifier.
+  - 6. Send the modified request.
+  - 7. Repeat using another user role (Maker, Checker, Admin).
+  - 8. Observe whether unauthorized data is returned.
+  - 9. Capture both successful and rejected responses.
+  expected_secure_result:
+  - 1. Users can access only their authorized records.
+  - 2. Unauthorized object IDs return 403 Forbidden or 404 Not Found.
+- id: VAPT-050
+  title: API Authentication Bypass
+  sub_of: null
+  risk_description: Attackers may access protected APIs without valid authentication tokens/session.
+  cwe_score: 287
+  severity: Medium
+  remediation: Remove Authorization headers, modify tokens, use expired tokens and verify API rejects unauthorized requests.
+  tested_by: Manual
+  automatable: false
+  reason: AI can verify token presence from captured traffic. Token bypass testing requires active attack attempts.
+  test_steps:
+  - 1. Login as a low-privileged user.
+  - 2. Capture requests for profile updates, customer details, reports, or transactions.
+  - 3. Modify object identifiers and role-related parameters.
+  - 4. Replay the request.
+  - 5. Verify whether unauthorized records can be viewed or modified.
+  - 6. Repeat using different user roles.
+  - 7. Record evidence.
+  expected_secure_result:
+  - 1. Authorization is enforced on every object.
+  - 2. Unauthorized access is denied.
+- id: VAPT-051
+  title: JWT / Token Security Validation
+  sub_of: null
+  risk_description: Weak token implementation may allow token manipulation or unauthorized access.
+  cwe_score: 347
+  severity: Medium
+  remediation: Verify token expiry, signature validation, token reuse, algorithm weakness, and token revocation.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI can identify token type and structure. Manual required for tampering, replay and expiry testing.
+  test_steps:
+  - 1. Login as a normal user.
+  - 2. Identify Admin-only URLs or API endpoints.
+  - 3. Manually browse to those URLs.
+  - 4. Capture requests in Burp.
+  - 5. Replay Admin API requests.
+  - 6. Observe responses.
+  - 7. Repeat for Maker/Checker functions.
+  expected_secure_result:
+  - 1. Unauthorized users receive 403 Forbidden.
+  - 2. Administrative functions are inaccessible.
+- id: VAPT-052
+  title: Sensitive Data Exposure in API Response
+  sub_of: null
+  risk_description: API may expose unnecessary customer, account, CKYC, PAN, Aadhaar or confidential information.
+  cwe_score: 200
+  severity: Medium
+  remediation: Review API responses and verify only required information is returned and sensitive data masking is implemented.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI can detect sensitive fields in responses. Manual required after decrypting protected responses.
+  test_steps:
+  - 1. Capture a sensitive API request.
+  - 2. Send the request to Burp Intruder.
+  - 3. Configure 100–500 requests (or as authorized).
+  - 4. Start the attack.
+  - '5. Observe:'
+  - 6. HTTP Status Codes
+  - 7. Delays
+  - 429 Responses
+  - 8. Temporary blocking
+  - 9. Verify account lockout behavior.
+  expected_secure_result:
+  - 1. Rate limiting is enforced.
+  - 2. Excessive requests are throttled.
+- id: VAPT-053
+  title: API Rate Limiting / Throttling
+  sub_of: null
+  risk_description: Lack of rate limiting may allow brute-force attacks, enumeration and resource exhaustion.
+  cwe_score: 770
+  severity: High
+  remediation: Test login, OTP, search and transaction APIs with multiple requests and verify throttling.
+  tested_by: Manual
+  automatable: false
+  reason: AI cannot generate large request volumes. Requires Burp Intruder/API automation testing.
+  test_steps:
+  - 1. Login to the application.
+  - 2. Identify the JWT token.
+  - 3. Decode the JWT using jwt.io or Burp Decoder.
+  - '4. Verify:'
+  - 5. alg
+  - 6. exp
+  - 7. iat
+  - 8. aud
+  - 9. iss
+  - '10. Attempt:'
+  - 11. alg=None
+  - 12. Signature removal
+  - 13. Expired token
+  - 14. Replay the modified token.
+  expected_secure_result:
+  - 1. Invalid JWTs are rejected.
+  - 2. Expired tokens are not accepted.
+- id: VAPT-054
+  title: Business Logic Validation
+  sub_of: null
+  risk_description: Incorrect workflow implementation may allow unauthorized transactions or process bypass.
+  cwe_score: 840
+  severity: High
+  remediation: Verify Maker-Checker approval flow, transaction states, approval bypass and workflow manipulation.
+  tested_by: Manual
+  automatable: false
+  reason: Requires understanding business process and testing with multiple roles.
+  test_steps:
+  - 1. Login to the application.
+  - 2. Capture a successful transaction request.
+  - 3. Send the identical request again using Burp Repeater.
+  - 4. Repeat several times.
+  - 5. Logout.
+  - 6. Replay the captured request again.
+  - 7. Observe server behavior.
+  expected_secure_result:
+  - 1. Duplicate transactions are rejected.
+  - 2. Replay protection is implemented.
+  - 3. Expired tokens cannot be reused.
+- id: VAPT-055
+  title: Privilege Escalation
+  sub_of: null
+  risk_description: Lower privilege users may perform admin-level operations.
+  cwe_score: 269
+  severity: Medium
+  remediation: Verify Admin, Maker, Checker and User permissions are properly enforced.
+  tested_by: Manual
+  automatable: false
+  reason: Requires multiple role accounts and functional testing.
+  test_steps:
+  - 1. Capture a user update request.
+  - 2. Send it to Burp Repeater.
+  - '3. Add hidden parameters such as:'
+  - 4. role=Admin
+  - 5. isAdmin=true
+  - 6. status=Approved
+  - 7. branch=HO
+  - 8. Replay the request.
+  - 9. Observe whether unauthorized fields are accepted.
+  expected_secure_result:
+  - 1. Unknown parameters are ignored.
+  - 2. Sensitive attributes cannot be modified.
+- id: VAPT-056
+  title: Mass Assignment Vulnerability
+  sub_of: null
+  risk_description: Attackers may modify hidden fields like role, status, privilege or ownership.
+  cwe_score: 915
+  severity: High
+  remediation: Add unauthorized parameters in API requests and verify server-side validation.
+  tested_by: Manual
+  automatable: false
+  reason: Requires request modification and API behaviour validation.
+  test_steps:
+  - 1. Identify the application's workflow.
+  - 2. Attempt to skip mandatory steps.
+  - 3. Modify request sequences.
+  - 4. Submit requests in an incorrect order.
+  - 5. Attempt duplicate approvals.
+  - 6. Test negative values, excessive values, and invalid sequences.
+  - 7. Record responses.
+  expected_secure_result:
+  - 1. Business workflow cannot be bypassed.
+  - 2. Server validates transaction sequence.
+- id: VAPT-057
+  title: Insecure File Upload
+  sub_of: null
+  risk_description: Malicious files may be uploaded causing malware execution, data leakage or server compromise.
+  cwe_score: 434
+  severity: High
+  remediation: Test extension bypass, MIME bypass, malicious files, SVG payloads, ZIP bombs and CSV injection.
+  tested_by: Manual
+  automatable: false
+  reason: AI can identify upload functionality from HAR. Actual file attack requires uploading payload files.
+  test_steps:
+  - 1. Login as Maker.
+  - 2. Create a transaction.
+  - 3. Attempt to approve it using the same Maker account.
+  - 4. Logout.
+  - 5. Login as Checker.
+  - 6. Approve the transaction.
+  - 7. Repeat with Admin if applicable.
+  expected_secure_result:
+  - 1. Maker cannot approve their own transaction.
+  - 2. Checker approval is mandatory.
+- id: VAPT-058
+  title: Server-Side Request Forgery (SSRF)
+  sub_of: null
+  risk_description: Server may make unauthorized requests to internal systems/cloud metadata services.
+  cwe_score: 918
+  severity: High
+  remediation: Test URL-based inputs with internal IPs, localhost, metadata endpoints and callback URLs.
+  tested_by: Manual
+  automatable: false
+  reason: Requires external interaction and callback verification (Burp Collaborator).
+  test_steps:
+  - 1. Capture API responses.
+  - 2. Review JSON payloads.
+  - '3. Check for:'
+  - 4. Aadhaar
+  - 5. PAN
+  - 6. Passwords
+  - 7. Tokens
+  - 8. Account Numbers
+  - 9. CVV
+  - 10. Internal IDs
+  - 11. Verify masking.
+  - 12. Capture evidence.
+  expected_secure_result:
+  - 1. Sensitive data is masked or omitted.
+  - 2. Only required information is returned.
+- id: VAPT-059
+  title: XML External Entity (XXE)
+  sub_of: null
+  risk_description: Malicious XML processing may expose internal files or perform SSRF.
+  cwe_score: 611
+  severity: High
+  remediation: Upload XML payloads with external entity definitions and verify parser behaviour.
+  tested_by: Manual
+  automatable: false
+  reason: Requires XML upload functionality and crafted payload execution.
+  test_steps:
+  - 1. Locate file upload functionality.
+  - '2. Upload:'
+  - 3. EXE
+  - 4. JSP
+  - 5. PHP
+  - 6. HTML
+  - 7. SVG
+  - 8. JavaScript
+  - 9. ZIP
+  - 10. Change MIME types.
+  - 11. Rename extensions.
+  - 12. Upload oversized files.
+  - 13. Upload CSV formula payloads.
+  - 14. Verify server responses.
+  expected_secure_result:
+  - 1. Only approved file types are accepted.
+  - 2. MIME validation is enforced.
+  - 3. Uploaded files cannot execute.
+- id: VAPT-060
+  title: Race Condition
+  sub_of: null
+  risk_description: Parallel requests may bypass validation or duplicate transactions.
+  cwe_score: 362
+  severity: Medium
+  remediation: Send simultaneous requests for transaction, approval, OTP and balance operations.
+  tested_by: Manual
+  automatable: false
+  reason: Requires Turbo Intruder or parallel request execution.
+  test_steps:
+  - 1. Identify CSV upload fields.
+  - '2. Upload CSV containing:'
+  - 3. =cmd|' /C calc'!A0
+  - 4. =SUM(1+1)
+  - 5. =HYPERLINK(...)
+  - 6. Export the CSV.
+  - 7. Open it in Excel.
+  - 8. Verify whether formulas execute.
+  expected_secure_result:
+  - 1. Dangerous formulas are sanitized.
+  - 2. Data is treated as plain text.
+- id: VAPT-061
+  title: Replay Attack Validation
+  sub_of: null
+  risk_description: Captured requests may be reused to perform unauthorized actions.
+  cwe_score: 294
+  severity: Medium
+  remediation: Capture authenticated request and replay multiple times after logout/session expiry.
+  tested_by: Manual
+  automatable: false
+  reason: AI can identify replay-sensitive APIs. Actual replay requires active testing.
+  test_steps:
+  - 1. Browse the application.
+  - 2. Capture multiple responses.
+  - '3. Verify the presence of:'
+  - 4. CSP
+  - 5. HSTS
+  - 6. X-Frame-Options
+  - 7. X-Content-Type-Options
+  - 8. Referrer-Policy
+  - 9. Permissions-Policy
+  - '10. Compare headers across:'
+  - 11. Login
+  - 12. Dashboard
+  - 13. API
+  - 14. Static files
+  expected_secure_result:
+  - 1. Security headers are consistently applied across all responses.
+- id: VAPT-062
+  title: HTTP Request Smuggling
+  sub_of: null
+  risk_description: Front-end and backend parsing differences may allow request manipulation.
+  cwe_score: 444
+  severity: High
+  remediation: Test CL.TE, TE.CL, HTTP desync scenarios between proxy and backend.
+  tested_by: Manual
+  automatable: false
+  reason: Requires specially crafted HTTP requests and infrastructure behaviour testing.
+  test_steps:
+  - 1. Capture an API request.
+  - '2. Modify the Origin header:'
+  - '3. Origin: https://evil.com'
+  - 4. Replay the request.
+  - '5. Observe:'
+  - 6. Access-Control-Allow-Origin
+  - 7. Access-Control-Allow-Credentials
+  - 8. Repeat with multiple origins.
+  expected_secure_result:
+  - 1. Only trusted origins are allowed.
+  - 2. Wildcard (*) is not used with credentials.
+- id: VAPT-063
+  title: Cache Poisoning / Cache Deception
+  sub_of: null
+  risk_description: Sensitive information may be stored or served incorrectly from cache.
+  cwe_score: 525
+  severity: High
+  remediation: Manipulate headers, cache keys and URL parameters to verify caching behaviour.
+  tested_by: Manual
+  automatable: false
+  reason: Requires proxy manipulation and cache behaviour analysis.
+  test_steps:
+  - '1. Review:'
+  - 2. Response headers
+  - 3. Configuration files
+  - 4. Error pages
+  - 5. Server banners
+  - '6. Verify:'
+  - 7. Directory listing
+  - 8. Backup files
+  - 9. Default pages
+  - 10. Debug mode
+  - 11. Record evidence.
+  expected_secure_result:
+  - 1. Debug information is disabled.
+  - 2. No unnecessary information is exposed.
+- id: VAPT-064
+  title: Security Misconfiguration – Debug, Backup and Sensitive File Exposure
+  sub_of: null
+  risk_description: Attackers may access debug pages, backup files, source files or configuration files.
+  cwe_score: 538
+  severity: High
+  remediation: Check exposed files like .env, backup.zip, web.config, source maps, debug endpoints and directory listing.
+  tested_by: AI + Manual
+  automatable: true
+  reason: AI can identify exposed files/configurations from HAR/static files. Manual required for active enumeration.
+  test_steps:
+  - 1. Capture an API request.
+  - '2. Modify:'
+  - 3. Parameters
+  - 4. HTTP Method
+  - 5. Authentication Token
+  - 6. Send malformed requests.
+  - 7. Observe responses.
+  - '8. Verify:'
+  - 9. Stack traces
+  - 10. Database errors
+  - 11. Framework errors
+  - 12. Internal paths
+  - 13. Capture screenshots.
+  expected_secure_result:
+  - 1. Generic error messages are returned.
+  - 2. No stack traces or internal information are exposed.

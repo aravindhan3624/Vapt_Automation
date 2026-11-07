@@ -1,0 +1,53 @@
+# ---- Secrets: never commit credentials or keys ----
+.env
+.env.*
+*.pem
+*.key
+*.jks
+*.p12
+*.pfx
+credentials*.properties
+*secret*
+*password*
+
+# ---- Raw capture files may contain live cookies/tokens: keep out of git ----
+# Redacted, discovered endpoint inventories are allowed (see !discovery/*.json below).
+captures/
+*.har
+burp-*.xml
+proxy-history*.xml
+
+# ---- Build output ----
+target/
+*.class
+*.jar
+*.war
+
+# ---- Generated reports / evidence (regenerable; may hold target data) ----
+vapt-automation/reports/output/
+vapt-automation/reports/evidence/*/
+!vapt-automation/reports/evidence/README.md
+
+# ---- IDE / OS ----
+.idea/
+*.iml
+.vscode/
+Thumbs.db
+~$*
+
+# ---- OneDrive backup bookkeeping (not part of the project) ----
+_backup_versions/
+*.conflict-*
+.backup_heartbeat.txt
+
+# ---- Allow redacted discovery output to be tracked ----
+!**/discovery/*.redacted.json
+!**/discovery/*.redacted.csv
+
+# ---- Local-only: customer reports, real UAT account names, chat backups, source checklist ----
+# Kept on this PC, never pushed (the GitHub repo is public).
+Reviews/
+vapt-automation/envfiles.txt
+envfiles*.txt
+Today_Backup_*/
+VAPT_Banking Domain check list*.xlsx
