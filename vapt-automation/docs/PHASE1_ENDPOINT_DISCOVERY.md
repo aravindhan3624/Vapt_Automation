@@ -1,4 +1,4 @@
-# Phase 1 — Passive endpoint discovery (CKYC 7.0 UAT)
+# Phase 1 — Passive endpoint discovery (CKYC 7.0 dev environment)
 
 **Passive only.** You use the application normally; Burp Suite records the traffic; this
 tool reads the exported file and builds an endpoint inventory. The tool itself sends **no**
@@ -6,12 +6,12 @@ requests and runs **no** security tests. Active testing is a later phase and nee
 written confirmation.
 
 ## Before you start
-- Approved CKYC 7.0 **UAT** only, with the written approval reference recorded.
+- Approved CKYC 7.0 **dev environment** only, with the written approval reference recorded.
 - Use **test accounts** only. You type passwords yourself into the CKYC login page.
   Never paste them in chat, a file or a ticket.
 - Burp Suite running; browser proxy set to Burp (default `127.0.0.1:8080`), Burp CA
   certificate installed in that browser so HTTPS loads.
-- In Burp, add the UAT host to **Target > Scope** and turn on "show only in-scope items",
+- In Burp, add the dev host to **Target > Scope** and turn on "show only in-scope items",
   so traffic from other sites isn't captured.
 - **Do not** use Burp Scanner, Intruder or active scan in this phase.
 
@@ -20,14 +20,15 @@ One command per role. Edge opens with a **fresh, empty profile** (nothing from y
 you log in yourself and use the application; closing the window ends the session.
 ```powershell
 cd vapt-automation
-.\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-uat-host>/"
+.\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-dev-host>/"
 ```
 - Captures only XHR/fetch API calls to the start URL's host (add more with `-Hosts h1,h2`).
 - **CKYC encrypted bodies are saved as plain JSON** (read inside the page from WebCrypto, matched
   exactly to each call), with passwords, tokens, OTP, CSRF/session values, PAN/Aadhaar redacted.
   Header values are never stored.
 - Type the module name in the small **"VAPT module"** box (bottom right) before each module.
-- Optional: `-Proxy 127.0.0.1:8080` also sends the traffic through Burp Community or ZAP.
+- Optional: `-Proxy 127.0.0.1:8080` also sends the traffic through Burp Community.
+- Add `-Zap` for Phase 4 ZAP passive analysis of the same session (see `PHASE4_ZAP_PASSIVE_ANALYSIS.md`).
 - Output in `C:\captures\CKYC-7.0\`: `*.capture.jsonl` (redacted calls), `*-endpoints.redacted.csv/json`
   and `*-endpoint-discovery.html`.
 - Verified 2026-11-07 on a local fake app that encrypts with WebCrypto AES-GCM: 2 in-scope calls
@@ -37,7 +38,7 @@ cd vapt-automation
 ## Option B: Burp export
 ## 1. Capture (manual, per role)
 1. Clear Burp **Proxy > HTTP history** (so each file holds one role's walk).
-2. Log in to CKYC 7.0 UAT as one test role (e.g. Maker).
+2. Log in to CKYC 7.0 dev as one test role (e.g. Maker).
 3. Walk every module and action normally: menus, search, view, create, edit, approve/reject,
    upload/download, reports. Use test data only; don't do final submissions to external
    registries.

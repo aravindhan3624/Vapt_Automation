@@ -1,6 +1,6 @@
 # VAPT Automation Product — Tool Evaluation, Architecture and Plan
 
-_Prepared 2026-11-05 for the authorized CKYC 7.0 UAT engagement. Versions below were checked
+_Prepared 2026-11-05 for the authorized CKYC 7.0 engagement (target: the CKYC 7.0 **dev** environment, confirmed by the user 2026-11-09; not UAT, not production). Versions below were checked
 the same day against Maven Central metadata and the official ZAP GitHub releases API._
 
 ## 1. Environment found on this PC
@@ -122,20 +122,20 @@ Component mapping (requested names → where they live):
 | ExecutionLogger | `core-engine/util` (Log4j2, per-run log file) |
 
 ## 6. Phase plan
-| Phase | Scope | Traffic to UAT? | Status |
+| Phase | Scope | Traffic to the target? | Status |
 |---|---|---|---|
 | 1 | Inspect project, evaluate tools, this plan | No | **Done** |
 | 2 | Architecture + dependency updates, shared `crypto` module, ZAP daemon + passive session | No (local fake target only) | **Done 2026-11-07** (crypto 5/5, ZAP local IT pass) |
-| 3 | Recorder (Playwright) + discovery from recordings | Only your own browsing | **Done 2026-11-07** (local IT pass); first CKYC UAT recording pending (tester) |
-| 4 | ZAP daemon integration: start/stop, context + scope = approved UAT host only, import recorded traffic, **passive** alerts, ZAP reports | Passive only (no extra requests) | After ZAP install |
+| 3 | Recorder (Playwright) + discovery from recordings | Only your own browsing | **Done 2026-11-07** (local IT pass); first CKYC dev recording pending (tester) |
+| 4 | ZAP passive analysis: live through the recorder (`-Zap`) or offline HAR import; scope = approved host only; leads "To verify" linked to checklist items; redacted reports ([PHASE4](PHASE4_ZAP_PASSIVE_ANALYSIS.md)) | Passive only (no extra requests) | **Done 2026-11-09** (local ITs pass); first CKYC dev run pending (tester) |
 | 5 | Passive analysis: headers, cookies, sensitive data, error leakage, TLS basics | No extra traffic | |
 | 6 | Active modules, each separately approved by you in writing | **Yes — only after approval** | Not started |
 | 7 | Customer report: findings first, closure evidence for every item, false-positive register | No | Format exists (02 Nov report) |
-| 8 | Validate everything on the local fake target before any UAT run | Local only | Fake target exists |
+| 8 | Validate everything on the local fake target before any run on the target | Local only | Fake target exists |
 
 ## 7. Safety rules built into the product
 - ConfigLoader refuses PROD environments and placeholder approvals.
-- ZAP context/scope is limited to the approved UAT host; out-of-scope requests are dropped.
+- ZAP context/scope is limited to the approved host (CKYC 7.0 dev environment); out-of-scope requests are dropped.
 - Active modules are off by default and need an explicit per-run approval reference.
 - No brute force, no destructive or data-changing tests unless you approve them on test records.
 - Credentials only through environment variables; never in config, code, logs, reports or git.
@@ -144,5 +144,5 @@ Component mapping (requested names → where they live):
 ## 8. Missing prerequisites (yours)
 1. OK to download `ZAP_2.17.0_Crossplatform.zip` (273 MB) from the official ZAP GitHub release.
 2. Burp edition: Community or Professional.
-3. UAT approval reference + test-account environment variables (set by you).
+3. Approval reference + test-account environment variables (set by you).
 4. Optional: NVD API key, if you want Dependency-Check.

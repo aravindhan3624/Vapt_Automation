@@ -21,6 +21,12 @@ public final class RecorderConfig {
     /** Store redacted bodies (needed later to build negative tests from real calls). */
     public boolean captureBodies = true;
     public int maxBodyChars = 20_000;
+    /**
+     * Phase 4: route the browser through a local ZAP (started and stopped by the recorder) for
+     * passive analysis. ZAP only watches; no spider, no active scan. Null = off.
+     */
+    public Path zapInstallDir;
+    public Path zapHomeDir = Path.of("C:\\Tools\\zap-home");
 
     /** Fills approvedHosts from the start URL when none were given. */
     public RecorderConfig resolve() {
@@ -29,6 +35,9 @@ public final class RecorderConfig {
             approvedHosts.add(u.getPort() > 0 ? u.getHost() + ":" + u.getPort() : u.getHost());
         }
         if (approvedHosts.isEmpty()) throw new IllegalArgumentException("No approved host: give --hosts or --start-url");
+        if (zapInstallDir != null && !proxy.isBlank()) {
+            throw new IllegalArgumentException("Use either --zap or --proxy, not both");
+        }
         return this;
     }
 

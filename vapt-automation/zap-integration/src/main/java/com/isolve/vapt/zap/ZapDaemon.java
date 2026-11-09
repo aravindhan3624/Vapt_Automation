@@ -36,12 +36,14 @@ public final class ZapDaemon implements AutoCloseable {
     private final ClientApi api;
     private final int port;
     private final Path logFile;
+    private final Path sessionBase;
 
-    private ZapDaemon(Process process, ClientApi api, int port, Path logFile) {
+    private ZapDaemon(Process process, ClientApi api, int port, Path logFile, Path sessionBase) {
         this.process = process;
         this.api = api;
         this.port = port;
         this.logFile = logFile;
+        this.sessionBase = sessionBase;
     }
 
     /**
@@ -52,6 +54,9 @@ public final class ZapDaemon implements AutoCloseable {
     public static ZapDaemon start(Path zapInstallDir, Path zapHomeDir, int port, Duration startTimeout) throws Exception {
         Path jar = findZapJar(zapInstallDir);
         Files.createDirectories(zapHomeDir);
+        // A new session per run. It holds raw traffic (cookies, tokens), so close() deletes it.
+        Path sessionDir = Files.createDirectories(zapHomeDir.resolve("run-sessions"));
+        Path sessionBase = sessionDir.resolve("vapt-" + System.currentTimeMillis() + "-" + HexFormat.of().formatHex(randomBytes(4)));
         int p = port > 0 ? port : freePort();
         String apiKey = HexFormat.of().formatHex(randomBytes(24));
         Path log = zapHomeDir.resolve("zap-daemon-console.log");
@@ -61,6 +66,7 @@ public final class ZapDaemon implements AutoCloseable {
                 "-daemon", "-silent",
                 "-host", "127.0.0.1", "-port", String.valueOf(p),
                 "-dir", zapHomeDir.toString(),
+                "-newsession", sessionBase.toString(),
                 "-config", "api.key=" + apiKey,
                 // Keep ZAP's default permitted API addresses (localhost, 127.0.0.1 and the "zap"
                 // virtual host the Java client uses). The listener itself is bound to 127.0.0.1
@@ -81,7 +87,7 @@ public final class ZapDaemon implements AutoCloseable {
             }
             try {
                 api.callApi("core", "view", "version", Map.of());
-                ZapDaemon d = new ZapDaemon(proc, api, p, log);
+                ZapDaemon d = new ZapDaemon(proc, api, p, log, sessionBase);
                 d.call("core", "action", "setMode", Map.of("mode", "protect"));
                 return d;
             } catch (Exception e) {
@@ -90,6 +96,7 @@ public final class ZapDaemon implements AutoCloseable {
             }
         }
         proc.destroy();
+        deleteSessionFiles(sessionBase);
         throw new IllegalStateException("ZAP API not ready within " + startTimeout.toSeconds() + "s; see " + log, last);
     }
 
@@ -128,18 +135,53 @@ public final class ZapDaemon implements AutoCloseable {
         return colon >= 0 ? s.substring(colon + 1).trim() : s.trim();
     }
 
-    /** Shuts ZAP down via its API; force-stops the process if it doesn't exit in time. */
+    /** Base path of this run's ZAP session files (deleted by {@link #close()}). */
+    public Path sessionBase() {
+        return sessionBase;
+    }
+
+    /**
+     * Shuts ZAP down via its API (force-stops the process if it doesn't exit in time), then
+     * deletes this run's session files, which contain raw traffic including cookies and tokens.
+     */
     @Override
     public void close() {
         try {
             api.callApi("core", "action", "shutdown", Map.of());
         } catch (Exception ignore) { /* already stopping */ }
         try {
-            if (!process.waitFor(60, TimeUnit.SECONDS)) process.destroyForcibly();
+            if (!process.waitFor(60, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                process.waitFor(15, TimeUnit.SECONDS);
+            }
         } catch (InterruptedException e) {
             process.destroyForcibly();
             Thread.currentThread().interrupt();
         }
+        deleteSessionFiles(sessionBase);
+    }
+
+    /** Deletes session.data / .script / .properties / .log / .tmp etc. for one session base path. */
+    static void deleteSessionFiles(Path base) {
+        Path dir = base.getParent();
+        String prefix = base.getFileName().toString();
+        if (dir == null || !Files.isDirectory(dir)) return;
+        try (Stream<Path> s = Files.list(dir)) {
+            for (Path f : s.filter(f -> f.getFileName().toString().startsWith(prefix)).toList()) {
+                deleteRecursively(f);
+            }
+        } catch (IOException ignore) { /* best effort */ }
+    }
+
+    private static void deleteRecursively(Path p) {
+        try {
+            if (Files.isDirectory(p)) {
+                try (Stream<Path> s = Files.list(p)) {
+                    for (Path c : s.toList()) deleteRecursively(c);
+                }
+            }
+            Files.deleteIfExists(p);
+        } catch (IOException ignore) { /* file still locked: best effort */ }
     }
 
     // ---------------- helpers ----------------

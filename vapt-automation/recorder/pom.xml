@@ -31,6 +31,10 @@
             <artifactId>core-engine</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.isolve.vapt</groupId>
+            <artifactId>zap-integration</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
@@ -51,6 +55,10 @@
                         <include>**/*Test.java</include>
                         <include>**/*IT.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <zap.install.dir>${zap.install.dir}</zap.install.dir>
+                        <zap.home.dir>${zap.home.dir}</zap.home.dir>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>

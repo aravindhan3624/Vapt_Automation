@@ -1,0 +1,40 @@
+# ZAP passive-rule id -> related item in the banking VAPT checklist (catalog/vapt-banking-catalog.yaml).
+# Used only to label passive-analysis leads; a mapping never confirms a finding.
+# Rules not listed here are still reported, with no checklist item.
+# Override per run with -Dvapt.zap.map=<file> (same format).
+mappings:
+  "10038": [VAPT-010]          # Content Security Policy (CSP) header not set
+  "10055": [VAPT-010]          # CSP: weak / wildcard directives
+  "10020": [VAPT-025]          # Missing anti-clickjacking header
+  "10035": [VAPT-001]          # Strict-Transport-Security header not set
+  "10040": [VAPT-001]          # Secure page includes mixed content
+  "10042": [VAPT-001]          # HTTPS to HTTP insecure transition
+  "10041": [VAPT-039]          # HTTP to HTTPS insecure transition in form post
+  "10105": [VAPT-039]          # Weak authentication method
+  "10036": [VAPT-008]          # Server leaks version via "Server" header
+  "10037": [VAPT-008]          # Server leaks information via "X-Powered-By"
+  "10039": [VAPT-008]          # X-Backend-Server header information leak
+  "10009": [VAPT-008]          # In-page banner information leak
+  "10021": [VAPT-023]          # X-Content-Type-Options header missing
+  "10063": [VAPT-023]          # Permissions-Policy header not set
+  "10098": [VAPT-023]          # Cross-domain misconfiguration (CORS)
+  "10032": [VAPT-023]          # Viewstate
+  "10010": [VAPT-014]          # Cookie no HttpOnly flag
+  "10011": [VAPT-014]          # Cookie without Secure flag
+  "10054": [VAPT-014]          # Cookie without SameSite attribute
+  "3":     [VAPT-007, VAPT-015] # Session ID in URL rewrite
+  "10015": [VAPT-012]          # Re-examine Cache-control directives
+  "10049": [VAPT-063]          # Storable / cacheable content
+  "90022": [VAPT-041, VAPT-042] # Application error disclosure
+  "10023": [VAPT-041, VAPT-042] # Information disclosure - debug error messages
+  "10024": [VAPT-017]          # Information disclosure - sensitive information in URL
+  "10025": [VAPT-017]          # Information disclosure - sensitive information in Referer
+  "10027": [VAPT-017]          # Information disclosure - suspicious comments
+  "10056": [VAPT-017]          # X-Debug-Token information leak
+  "10052": [VAPT-017]          # X-ChromeLogger-Data header information leak
+  "10057": [VAPT-017]          # Username hash found
+  "10097": [VAPT-017]          # Hash disclosure
+  "10096": [VAPT-017]          # Timestamp disclosure
+  "10062": [VAPT-043, VAPT-052] # PII disclosure
+  "10017": [VAPT-009]          # Cross-domain JavaScript source file inclusion
+  "10202": [VAPT-021]          # Absence of anti-CSRF tokens

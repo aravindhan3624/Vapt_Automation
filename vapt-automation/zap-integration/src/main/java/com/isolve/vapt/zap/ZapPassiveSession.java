@@ -44,6 +44,30 @@ public final class ZapPassiveSession {
                     Map.of("contextName", contextName, "regex", scopeRegex(host)));
         }
         zap.call("context", "action", "setContextInScope", Map.of("contextName", contextName, "booleanInScope", "true"));
+        // Passive rules look only at approved hosts; other traffic the browser makes is ignored.
+        zap.call("pscan", "action", "setScanOnlyInScope", Map.of("onlyInScope", "true"));
+    }
+
+    /**
+     * Imports a HAR file (browser DevTools / Burp export) into this ZAP session so the passive
+     * scanner can read it. Importing sends NO requests: ZAP only reads the request/response pairs
+     * already in the file. The file may hold live cookies/tokens; it is read locally and the ZAP
+     * session that stores it is deleted when the daemon closes.
+     */
+    public void importHar(java.nio.file.Path harFile) throws Exception {
+        java.nio.file.Path abs = harFile.toAbsolutePath().normalize();
+        if (!java.nio.file.Files.isRegularFile(abs)) throw new IllegalArgumentException("HAR file not found: " + abs);
+        zap.call("exim", "action", "importHar", Map.of("filePath", abs.toString()));
+    }
+
+    /** Total messages in the ZAP session (all hosts). */
+    public int messageCount() throws Exception {
+        return Integer.parseInt(ZapDaemon.value(zap.call("core", "view", "numberOfMessages", Map.of())));
+    }
+
+    /** All alerts for the approved hosts (redacted). */
+    public List<ZapAlert> alerts() throws Exception {
+        return alerts("");
     }
 
     /** Regex for one approved host: http(s), optional port, any path. */
@@ -77,9 +101,9 @@ public final class ZapPassiveSession {
     /** Alerts for a base URL, redacted. Only URLs inside the approved hosts are returned. */
     public List<ZapAlert> alerts(String baseUrl) throws Exception {
         Map<String, String> params = new LinkedHashMap<>();
-        params.put("baseurl", baseUrl);
+        if (baseUrl != null && !baseUrl.isBlank()) params.put("baseurl", baseUrl);
         params.put("start", "0");
-        params.put("count", "10000");
+        params.put("count", "100000");
         ApiResponse r = zap.call("alert", "view", "alerts", params);
         List<ZapAlert> out = new ArrayList<>();
         if (!(r instanceof ApiResponseList list)) return out;
@@ -97,18 +121,23 @@ public final class ZapPassiveSession {
             a.wascId = str(set, "wascid");
             a.solution = str(set, "solution");
             a.reference = str(set, "reference");
+            a.method = str(set, "method");
+            a.description = str(set, "description");
             if (inScope(a.url)) out.add(a);
         }
         return out;
     }
 
-    /** ZAP's own HTML report for everything in the session (redacted). */
+    /**
+     * ZAP's own HTML report for everything in the session (redacted). It covers ALL hosts ZAP saw,
+     * not only approved ones; prefer {@link PassiveAnalysisReport} for anything shared.
+     */
     public String htmlReport() throws Exception {
         byte[] raw = zap.callOther("core", "htmlreport", Map.of());
         return MaskUtil.mask(new String(raw, java.nio.charset.StandardCharsets.UTF_8));
     }
 
-    private boolean inScope(String url) {
+    boolean inScope(String url) {
         for (String h : approvedHosts) if (url.matches(scopeRegex(h))) return true;
         return false;
     }

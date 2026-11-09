@@ -16,6 +16,8 @@ public final class ZapAlert {
     public String wascId = "";
     public String solution = "";
     public String reference = "";
+    public String method = "";
+    public String description = "";
 
     @Override
     public String toString() {

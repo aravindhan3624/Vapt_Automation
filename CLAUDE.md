@@ -138,6 +138,8 @@ mvn -pl projects/ckyc -am test -Dcucumber.execution.dry-run=true -Dsurefire.fail
 mvn -pl projects/ckyc -am test -Dvapt.mock.port=18089 -Dvapt.config=config/ckyc-mock-config.yaml "-Dcucumber.filter.tags=@ckyc and not @cookies and not @business-logic"   # local FAKE target (MockTargetHooks); needs MOCK_MAKER_USER/PASS set to any dummy value
 mvn -pl crypto -am test                                         # crypto round trip vs loopback stand-in server
 mvn -pl zap-integration -am test -Dzap.install.dir=C:\Tools\ZAP_2.17.0 -Dzap.home.dir=C:\Tools\zap-home   # starts ZAP locally, loopback fake target only
+.\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-dev-host>/" -Zap   # Phase 4: tester browses CKYC dev, ZAP passive only
+.\tools\zap-passive-har.ps1 -Project "CKYC-7.0" -Hosts "<dev-host>" -Har C:\captures\x.har   # Phase 4 offline: HAR import, sends nothing
 mvn -pl projects/ckyc -am test                                  # REAL run: only with filled scope + user's go
 ```
 Always use `-am`: the parent POM is not installed in `.m2`, so `-pl projects/ckyc`
@@ -171,6 +173,11 @@ updated after every meaningful change without churning this architecture doc.
 - **Git** was initialized on 2026-11-05 at the `VAPT_Codes` root (user-approved). The root
   `.gitignore` blocks credentials, key files and raw proxy captures (`*.har`, `burp-*.xml`,
   `captures/`); never commit those.
+- **Target environment**: CKYC 7.0 **dev** environment (user, 2026-11-09), not UAT/production.
+- **Phase 4 ZAP passive analysis** (`ZapPassiveAnalysis`, `PassiveAnalysisReport`, recorder `--zap`):
+  ZAP only watches the tester's traffic or imports a HAR; no spider/active scan. Every lead is
+  "To verify"; the per-run ZAP session (raw traffic) is deleted on close. See
+  `vapt-automation/docs/PHASE4_ZAP_PASSIVE_ANALYSIS.md`.
 - **Phase 1 discovery** (`core-engine/.../discovery`, run via `tools/run-discovery.ps1`) is
   passive: it only reads a capture file the user exported and stores names/status codes, never
   values. Active testing needs the user's separate written go-ahead. See

@@ -8,7 +8,7 @@ import java.util.Arrays;
  *
  *   RecorderMain --project CKYC-7.0 --role Maker --start-url https://uat-host/app
  *                [--hosts host1,host2:port] [--out C:\captures\CKYC-7.0] [--proxy 127.0.0.1:8080]
- *                [--no-overlay] [--no-bodies]
+ *                [--no-overlay] [--no-bodies] [--zap [C:\Tools\ZAP_2.17.0]] [--zap-home C:\Tools\zap-home]
  *
  * Opens Edge; the tester logs in and walks the modules; closing the browser window ends the
  * session and writes the redacted capture file plus the endpoint discovery report.
@@ -29,6 +29,9 @@ public final class RecorderMain {
                 case "--proxy" -> cfg.proxy = args[++i];
                 case "--no-overlay" -> cfg.overlay = false;
                 case "--no-bodies" -> cfg.captureBodies = false;
+                case "--zap" -> cfg.zapInstallDir = (i + 1 < args.length && !args[i + 1].startsWith("--"))
+                        ? Path.of(args[++i]) : com.isolve.vapt.zap.ZapPassiveAnalysis.DEFAULT_ZAP_DIR;
+                case "--zap-home" -> cfg.zapHomeDir = Path.of(args[++i]);
                 default -> throw new IllegalArgumentException("Unknown option: " + args[i]);
             }
         }
@@ -39,6 +42,9 @@ public final class RecorderMain {
         System.out.println("  Project : " + cfg.project + "   Role: " + cfg.role);
         System.out.println("  Captures: API calls to " + cfg.approvedHosts);
         System.out.println("  Output  : " + cfg.outDir);
+        if (cfg.zapInstallDir != null) {
+            System.out.println("  ZAP     : passive analysis ON (local ZAP watches this session; no scans). Starting ZAP, about a minute...");
+        }
         if (!cfg.proxy.isBlank()) System.out.println("  Via proxy " + cfg.proxy + " (TLS errors ignored for the proxy's own certificate)");
         System.out.println();
         System.out.println("Edge will open with a fresh empty profile. Log in yourself, then use the application normally.");
@@ -58,6 +64,10 @@ public final class RecorderMain {
             System.out.println("Capture file (redacted): " + s.captureFile);
             System.out.println("Discovery report       : " + s.reportHtml);
             System.out.println("Endpoint inventory     : " + s.inventoryCsv);
+            if (s.zap != null) {
+                System.out.println("ZAP passive analysis   : " + s.zap);
+                System.out.println("ZAP passive report     : " + s.zap.html);
+            }
         }
     }
 }

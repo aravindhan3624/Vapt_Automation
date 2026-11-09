@@ -2,6 +2,8 @@
 .SYNOPSIS
   Passive recorder: opens Microsoft Edge (fresh empty profile), you log in and use the app,
   API calls to the approved host are captured (redacted) and an endpoint report is written.
+  With -Zap, a local OWASP ZAP also watches the same traffic and writes a passive-analysis
+  report (Phase 4). ZAP only watches: no spider, no active scan, no extra requests.
 
 .DESCRIPTION
   The recorder sends no requests of its own and never reads or fills the login form.
@@ -10,11 +12,15 @@
   (outside OneDrive and git).
 
 .EXAMPLE
-  .\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-uat-host>/"
+  .\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-dev-host>/"
+
+.EXAMPLE
+  # Phase 4: recorder + local ZAP passive analysis (ZAP from C:\Tools\ZAP_2.17.0)
+  .\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-dev-host>/" -Zap
 
 .EXAMPLE
   # Also send the traffic through Burp (Community) running on 127.0.0.1:8080
-  .\tools\record.ps1 -Project "CKYC-7.0" -Role Checker -StartUrl "https://<approved-uat-host>/" -Proxy "127.0.0.1:8080"
+  .\tools\record.ps1 -Project "CKYC-7.0" -Role Checker -StartUrl "https://<approved-dev-host>/" -Proxy "127.0.0.1:8080"
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Project,
@@ -24,7 +30,10 @@ param(
     [string]$Out = "",
     [string]$Proxy = "",
     [switch]$NoOverlay,
-    [switch]$NoBodies
+    [switch]$NoBodies,
+    [switch]$Zap,
+    [string]$ZapDir = "C:\Tools\ZAP_2.17.0",
+    [string]$ZapHome = "C:\Tools\zap-home"
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot          # ...\vapt-automation
@@ -48,6 +57,10 @@ try {
     if ($Proxy)     { $javaArgs += @('--proxy', $Proxy) }
     if ($NoOverlay) { $javaArgs += '--no-overlay' }
     if ($NoBodies)  { $javaArgs += '--no-bodies' }
+    if ($Zap) {
+        if ($Proxy) { throw "Use either -Zap or -Proxy, not both" }
+        $javaArgs += @('--zap', $ZapDir, '--zap-home', $ZapHome)
+    }
     & java @javaArgs
     if ($LASTEXITCODE -ne 0) { throw "Recorder failed" }
 } finally {

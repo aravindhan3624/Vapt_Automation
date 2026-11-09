@@ -14,6 +14,10 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
+import com.microsoft.playwright.options.Proxy;
+import com.isolve.vapt.zap.ZapDaemon;
+import com.isolve.vapt.zap.ZapPassiveAnalysis;
+import com.isolve.vapt.zap.ZapPassiveSession;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -71,6 +75,8 @@ public final class Recorder implements AutoCloseable {
         public Path reportHtml;
         public Path inventoryJson;
         public Path inventoryCsv;
+        /** Phase 4 ZAP passive analysis, when the recorder ran with ZAP. */
+        public ZapPassiveAnalysis.Result zap;
     }
 
     private final RecorderConfig cfg;
@@ -91,6 +97,8 @@ public final class Recorder implements AutoCloseable {
     private int decReq;
     private int decResp;
     private boolean stopped;
+    private ZapDaemon zap;
+    private ZapPassiveSession zapSession;
 
     private Recorder(RecorderConfig cfg) throws IOException {
         this.cfg = cfg.resolve();
@@ -99,6 +107,18 @@ public final class Recorder implements AutoCloseable {
         this.baseName = safe(cfg.project) + "-" + safe(cfg.role) + "-" + stamp;
         this.captureFile = cfg.outDir.resolve(baseName + ".capture.jsonl");
         this.out = Files.newBufferedWriter(captureFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+
+        if (cfg.zapInstallDir != null) {
+            // Phase 4: local ZAP watches the tester's traffic (passive only), scoped to approved hosts.
+            try {
+                this.zap = ZapDaemon.start(cfg.zapInstallDir, cfg.zapHomeDir, 0, ZapPassiveAnalysis.START_TIMEOUT);
+                this.zapSession = new ZapPassiveSession(zap, safe(cfg.project) + "-passive", cfg.approvedHosts);
+            } catch (Exception e) {
+                if (zap != null) zap.close();
+                out.close();
+                throw new IOException("Could not start ZAP for passive analysis: " + e.getMessage(), e);
+            }
+        }
 
         // Use the installed Edge; do not let Playwright download its own browsers.
         this.playwright = Playwright.create(new Playwright.CreateOptions()
@@ -110,7 +130,11 @@ public final class Recorder implements AutoCloseable {
 
         Browser.NewContextOptions opts = new Browser.NewContextOptions();   // fresh profile, nothing from the user's Edge
         if (!cfg.headless) opts.setViewportSize(null);
-        if (!cfg.proxy.isBlank()) {
+        if (zap != null) {
+            // ZAP re-signs TLS with its own CA, which this fresh profile does not trust.
+            // "<-loopback>" also sends localhost traffic through ZAP (local tests).
+            opts.setProxy(new Proxy("http://127.0.0.1:" + zap.port()).setBypass("<-loopback>")).setIgnoreHTTPSErrors(true);
+        } else if (!cfg.proxy.isBlank()) {
             // Burp / ZAP re-sign TLS with their own CA, which this fresh profile does not trust.
             opts.setProxy("http://" + cfg.proxy).setIgnoreHTTPSErrors(true);
         }
@@ -183,6 +207,23 @@ public final class Recorder implements AutoCloseable {
         s.inventoryJson = report.writeJson(cfg.outDir.toFile(), baseName + "-endpoints").toPath();
         s.inventoryCsv = report.writeCsv(cfg.outDir.toFile(), baseName + "-endpoints").toPath();
         s.reportHtml = report.writeHtml(cfg.outDir.toFile(), baseName + "-endpoint-discovery").toPath();
+        if (zapSession != null) {
+            try {
+                List<String> notes = new ArrayList<>();
+                notes.add("Live: the tester's own browser session (" + cfg.role + ") was routed through a local ZAP proxy; "
+                        + "ZAP only watched it.");
+                if (decReq + decResp > 0) {
+                    notes.add("This application encrypts API bodies, so ZAP saw ciphertext bodies: header, cookie, status "
+                            + "and error checks are valid; body-content rules cannot see the plain fields.");
+                }
+                s.zap = ZapPassiveAnalysis.finish(zapSession, cfg.project,
+                        "Recorder session " + cfg.role + " (" + captureFile.getFileName() + ")", cfg.outDir, baseName, notes);
+            } catch (Exception e) {
+                throw new IOException("ZAP passive analysis failed: " + e.getMessage(), e);
+            } finally {
+                closeZap();
+            }
+        }
         return s;
     }
 
@@ -192,6 +233,15 @@ public final class Recorder implements AutoCloseable {
             try { stop(); } catch (Exception ignore) { /* best effort */ }
         }
         closeBrowser();
+        closeZap();
+    }
+
+    private void closeZap() {
+        if (zap != null) {
+            zap.close();   // also deletes the ZAP session that held raw traffic
+            zap = null;
+            zapSession = null;
+        }
     }
 
     // ---------------- capture ----------------

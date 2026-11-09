@@ -1,6 +1,30 @@
 # HANDOVER.md — VAPT_Codes
 
-_Last verified: 2026-11-05. Read this alongside CLAUDE.md before continuing work._
+_Last verified: 2026-11-09. Read this alongside CLAUDE.md before continuing work._
+
+## 2026-11-09 — Phase 4: ZAP passive analysis (local only)
+- **Target is the CKYC 7.0 DEV environment** (user, 2026-11-09), not UAT. Docs updated.
+- `zap-integration`:
+  - `ZapDaemon` starts each run with `-newsession <zap-home>/run-sessions/vapt-...` and deletes those
+    files on `close()` (the ZAP session holds raw cookies/tokens).
+  - `ZapPassiveSession`: `pscan setScanOnlyInScope=true`, `importHar(Path)` (exim add-on; imports,
+    sends nothing), `alerts()` for all approved hosts, `messageCount()`.
+  - New `PassiveAnalysisReport`: leads grouped per ZAP rule, status always "To verify", linked to
+    checklist ids via `resources/zap/zap-catalog-map.yaml` (override `-Dvapt.zap.map`); HTML/CSV/JSON;
+    scrubbed with MaskUtil + cookie values, name=value secrets, JWTs, long secrets, URL query values.
+  - New `ZapPassiveAnalysis`: `finish(...)`, offline `analyzeHar(...)`, CLI main.
+- `recorder`: `--zap [dir]` / `--zap-home`. Starts ZAP, routes the Edge context through it
+  (`<-loopback>`; ignoreHTTPSErrors only because of ZAP's own CA), writes `<base>-zap-passive.*` next
+  to the capture, shuts ZAP down. `--zap` and `--proxy` are mutually exclusive.
+- Tools: `record.ps1 -Zap`, new `zap-passive-har.ps1`. Doc: `vapt-automation/docs/PHASE4_ZAP_PASSIVE_ANALYSIS.md`.
+- Tests (all local, loopback): `PassiveAnalysisReportTest` 2/2; `ZapHarPassiveLocalIT` pass (11 leads,
+  **0 requests** to the listening fake target, out-of-scope dropped, 0/5 secrets, session deleted);
+  `RecorderZapLocalIT` pass (8 leads, app got exactly its own 2 requests, 0/2 secrets);
+  `ZapPassiveLocalIT` and `RecorderLocalIT` still pass. Full `mvn install` OK; CKYC dry run 13/13.
+- CKYC bodies are encrypted on the wire, so ZAP body rules see ciphertext; header/cookie/error/
+  transport rules are valid. Not yet run on CKYC dev (needs the tester's run).
+- Next (each needs the user's go-ahead): first real `record.ps1 -Zap` per role on CKYC dev and a
+  review of the leads; then Phase 5 / ZAP encryption bridge; Phase 6 active only with written approval.
 
 ## 2026-11-07 — Recorder (Phase 3, passive)
 - New module **`recorder`** (Playwright **1.64.0**, `channel=msedge` = installed Edge 156, no browser
