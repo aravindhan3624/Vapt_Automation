@@ -72,7 +72,7 @@ public final class EndpointInventory {
         return out;
     }
 
-    static String normalizePath(String path) {
+    public static String normalizePath(String path) {
         if (path == null || path.isEmpty()) return "/";
         String[] segs = path.split("/");
         StringBuilder sb = new StringBuilder();

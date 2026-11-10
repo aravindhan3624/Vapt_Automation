@@ -14,7 +14,12 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
+import com.microsoft.playwright.options.HttpHeader;
 import com.microsoft.playwright.options.Proxy;
+import com.microsoft.playwright.options.SecurityDetails;
+import com.isolve.vapt.passive.PassiveCheckReport;
+import com.isolve.vapt.passive.PassiveChecks;
+import com.isolve.vapt.passive.PassiveObservation;
 import com.isolve.vapt.zap.ZapDaemon;
 import com.isolve.vapt.zap.ZapPassiveAnalysis;
 import com.isolve.vapt.zap.ZapPassiveSession;
@@ -64,6 +69,13 @@ public final class Recorder implements AutoCloseable {
         String rawResponseBody;
         String requestBlob;
         String responseBlob;
+        // For Phase 5 passive checks (memory only, dropped after the check runs).
+        String url;
+        String resourceType;
+        String rawQuery;
+        List<String[]> responseHeaders;
+        String tlsProtocol;
+        Long certValidTo;
     }
 
     public static final class Summary {
@@ -77,6 +89,10 @@ public final class Recorder implements AutoCloseable {
         public Path inventoryCsv;
         /** Phase 4 ZAP passive analysis, when the recorder ran with ZAP. */
         public ZapPassiveAnalysis.Result zap;
+        /** Phase 5 passive checks (always on; reads the same traffic, sends nothing). */
+        public int passiveLeads;
+        public Path passiveHtml;
+        public Path passiveCsv;
     }
 
     private final RecorderConfig cfg;
@@ -98,6 +114,7 @@ public final class Recorder implements AutoCloseable {
     private int decResp;
     private boolean stopped;
     private ZapDaemon zap;
+    private final PassiveChecks passive = new PassiveChecks();
     private ZapPassiveSession zapSession;
 
     private Recorder(RecorderConfig cfg) throws IOException {
@@ -207,6 +224,15 @@ public final class Recorder implements AutoCloseable {
         s.inventoryJson = report.writeJson(cfg.outDir.toFile(), baseName + "-endpoints").toPath();
         s.inventoryCsv = report.writeCsv(cfg.outDir.toFile(), baseName + "-endpoints").toPath();
         s.reportHtml = report.writeHtml(cfg.outDir.toFile(), baseName + "-endpoint-discovery").toPath();
+
+        PassiveCheckReport pr = PassiveCheckReport.build(cfg.project,
+                "Recorder session " + cfg.role + " (" + captureFile.getFileName() + ")", cfg.approvedHosts, passive);
+        if (decResp > 0) pr.addNote("This application encrypts API bodies; data and error checks ran on the decrypted "
+                + "(plain) bodies read inside the browser.");
+        s.passiveLeads = pr.leads();
+        s.passiveHtml = pr.writeHtml(cfg.outDir, baseName + "-passive-checks");
+        s.passiveCsv = pr.writeCsv(cfg.outDir, baseName + "-passive-checks");
+        pr.writeJson(cfg.outDir, baseName + "-passive-checks");
         if (zapSession != null) {
             try {
                 List<String> notes = new ArrayList<>();
@@ -267,10 +293,15 @@ public final class Recorder implements AutoCloseable {
 
     private void capture(Response resp) {
         Request req = resp.request();
-        if (!API_TYPES.contains(req.resourceType())) return;
         URI uri;
         try { uri = URI.create(req.url()); } catch (Exception e) { return; }
+        mixedContent(req);
         if (!cfg.inScope(uri)) return;
+        if ("document".equals(req.resourceType())) {
+            observeDocument(req, resp, uri);
+            return;
+        }
+        if (!API_TYPES.contains(req.resourceType())) return;
 
         CaptureRecord r = new CaptureRecord();
         r.capturedAt = LocalDateTime.now().toString();
@@ -297,6 +328,11 @@ public final class Recorder implements AutoCloseable {
                 p.rawResponseBody = body == null ? null : new String(body, StandardCharsets.UTF_8);
             } catch (PlaywrightException noBody) { /* redirects etc. */ }
         }
+        p.url = req.url();
+        p.resourceType = req.resourceType();
+        p.rawQuery = uri.getRawQuery();
+        p.responseHeaders = headers(resp);
+        tls(resp, p);
         p.responseBlob = envelopeBlob(p.rawResponseBody, "responseObject");
         if (p.responseBlob == null) p.responseBlob = envelopeBlob(p.rawResponseBody, "payload");
         pending.add(p);
@@ -322,6 +358,7 @@ public final class Recorder implements AutoCloseable {
                 r.responseDecrypted = true;
                 decResp++;
             }
+            passive.observe(observation(p, respBody, r.responseDecrypted));
             if (cfg.captureBodies) {
                 r.requestBody = JsonRedactor.redact(reqBody, cfg.maxBodyChars);
                 r.responseBody = JsonRedactor.redact(respBody, cfg.maxBodyChars);
@@ -336,6 +373,79 @@ public final class Recorder implements AutoCloseable {
             finalized.add(r);
             it.remove();
         }
+    }
+
+    // ---------------- Phase 5 passive checks (in memory) ----------------
+    private boolean viaProxy() {
+        return zap != null || !cfg.proxy.isBlank();
+    }
+
+    private PassiveObservation observation(Pending p, String plainResponseBody, boolean decryptedBody) {
+        PassiveObservation o = new PassiveObservation();
+        o.method = p.rec.method;
+        o.url = p.url;
+        o.resourceType = p.resourceType == null ? "" : p.resourceType;
+        o.status = p.rec.status;
+        o.responseContentType = p.rec.responseContentType;
+        if (p.responseHeaders != null) o.responseHeaders = p.responseHeaders;
+        o.queryParamNames = p.rec.queryParamNames;
+        o.rawQuery = p.rawQuery == null ? "" : p.rawQuery;
+        o.responseBody = plainResponseBody;
+        o.responseDecrypted = decryptedBody;
+        o.tlsProtocol = p.tlsProtocol;
+        o.certValidToEpochSec = p.certValidTo;
+        o.viaProxy = viaProxy();
+        return o;
+    }
+
+    private void observeDocument(Request req, Response resp, URI uri) {
+        Pending p = new Pending();
+        p.rec = new CaptureRecord();
+        p.rec.method = req.method();
+        p.rec.status = resp.status();
+        p.rec.responseContentType = header(resp.headers(), "content-type");
+        p.rec.queryParamNames = queryNames(uri.getRawQuery());
+        p.url = req.url();
+        p.resourceType = "document";
+        p.rawQuery = uri.getRawQuery();
+        p.responseHeaders = headers(resp);
+        tls(resp, p);
+        String body = null;
+        if (isTextual(p.rec.responseContentType)) {
+            try {
+                byte[] b = resp.body();
+                if (b != null) body = new String(b, 0, Math.min(b.length, 500_000), StandardCharsets.UTF_8);
+            } catch (PlaywrightException noBody) { /* redirects etc. */ }
+        }
+        passive.observe(observation(p, body, false));
+    }
+
+    private void mixedContent(Request req) {
+        try {
+            String page = req.frame().url();
+            URI pu = URI.create(page);
+            if (cfg.inScope(pu)) passive.observeSubresource(page, req.url());
+        } catch (Exception ignore) { /* service worker / detached frame */ }
+    }
+
+    private static List<String[]> headers(Response resp) {
+        List<String[]> out = new ArrayList<>();
+        try {
+            for (HttpHeader h : resp.headersArray()) out.add(new String[]{h.name, h.value});
+        } catch (PlaywrightException e) {
+            resp.headers().forEach((k, v) -> out.add(new String[]{k, v}));
+        }
+        return out;
+    }
+
+    private static void tls(Response resp, Pending p) {
+        try {
+            SecurityDetails sd = resp.securityDetails();
+            if (sd != null) {
+                p.tlsProtocol = sd.protocol;
+                p.certValidTo = sd.validTo == null ? null : sd.validTo.longValue();
+            }
+        } catch (PlaywrightException ignore) { /* not available */ }
     }
 
     // ---------------- helpers ----------------

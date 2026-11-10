@@ -1,6 +1,23 @@
 # HANDOVER.md — VAPT_Codes
 
-_Last verified: 2026-11-09. Read this alongside CLAUDE.md before continuing work._
+_Last verified: 2026-11-10. Read this alongside CLAUDE.md before continuing work._
+
+## 2026-11-10 — Phase 5: passive checks (local only)
+- New package `core-engine/.../passive`: `PassiveObservation` (in-memory only), `SensitiveData`
+  (PAN / Aadhaar+Verhoeff / card+Luhn / mobile / email / secret-field classifier with field-name hints
+  and masked-value detection), `PassiveChecks` (17 checks P5-H01..H07, C01, D01..D03, E01, E02,
+  T01..T04 -> checklist ids), `PassiveCheckReport` (HTML/CSV/JSON; leads first, "No issue observed"
+  rows list checked endpoints as closure evidence; names/counts/endpoints only + MaskUtil),
+  `HarPassiveChecks` (offline CLI). `EndpointInventory.normalizePath` is now public.
+- Recorder: always runs the checks on the same traffic (documents + XHR/fetch, plain bodies after
+  WebCrypto decryption, Set-Cookie via headersArray, TLS via securityDetails, mixed content via
+  frame URL) and writes `<base>-passive-checks.*`. With -Zap/-Proxy the TLS checks are "Not checked".
+- Tool: `tools/passive-checks-har.ps1`. Doc: `vapt-automation/docs/PHASE5_PASSIVE_CHECKS.md`.
+- Tests: `PassiveChecksTest` 3/3, `HarPassiveChecksTest` 1/1, `RecorderLocalIT` (6 leads incl.
+  `password` field in a response, no secrets in outputs), `RecorderZapLocalIT` and ZAP ITs still pass.
+  Full `mvn install` OK; CKYC dry run 13/13. Not yet run on CKYC dev (needs the tester's run).
+- Next (user's go-ahead each): tester records each role on CKYC dev (once without -Zap for TLS, once
+  with -Zap); review leads; then Phase 6 active modules only with written approval, Phase 7 report.
 
 ## 2026-11-09 — Phase 4: ZAP passive analysis (local only)
 - **Target is the CKYC 7.0 DEV environment** (user, 2026-11-09), not UAT. Docs updated.

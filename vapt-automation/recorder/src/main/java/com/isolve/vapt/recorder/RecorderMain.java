@@ -64,6 +64,7 @@ public final class RecorderMain {
             System.out.println("Capture file (redacted): " + s.captureFile);
             System.out.println("Discovery report       : " + s.reportHtml);
             System.out.println("Endpoint inventory     : " + s.inventoryCsv);
+            System.out.println("Passive checks (Ph 5) : " + s.passiveLeads + " checks with leads to verify -> " + s.passiveHtml);
             if (s.zap != null) {
                 System.out.println("ZAP passive analysis   : " + s.zap);
                 System.out.println("ZAP passive report     : " + s.zap.html);

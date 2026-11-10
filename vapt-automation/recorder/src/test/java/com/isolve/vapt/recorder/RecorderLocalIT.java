@@ -141,8 +141,16 @@ public class RecorderLocalIT {
         assertTrue(csv.contains("search;userId") || csv.contains("password;search;userId"),
                 "inventory shows the real (decrypted) body field names: " + csv);
 
+        // Phase 5 passive checks ran on the same traffic (plain bodies), names only in the report.
+        String passive = Files.readString(s.passiveCsv);
+        System.out.println("PASSIVE LEADS: " + s.passiveLeads);
+        assertTrue(s.passiveLeads > 0, "fake app has no security headers: leads expected");
+        assertTrue(passive.contains("P5-D02") && passive.contains("password"),
+                "password field returned by /api/plain is named as a secret-in-response lead: " + passive);
+        assertTrue(passive.contains("P5-T01"), "plain http to the app is reported");
+
         // Leak check over every file the recorder wrote.
-        for (Path f : List.of(s.captureFile, s.inventoryJson, s.inventoryCsv, s.reportHtml)) {
+        for (Path f : List.of(s.captureFile, s.inventoryJson, s.inventoryCsv, s.reportHtml, s.passiveHtml, s.passiveCsv)) {
             String content = Files.readString(f);
             for (String secret : List.of(FAKE_PASSWORD, FAKE_TOKEN, FAKE_PLAIN_PW)) {
                 assertFalse(content.contains(secret), secret + " leaked into " + f.getFileName());

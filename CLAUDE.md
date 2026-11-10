@@ -140,6 +140,7 @@ mvn -pl crypto -am test                                         # crypto round t
 mvn -pl zap-integration -am test -Dzap.install.dir=C:\Tools\ZAP_2.17.0 -Dzap.home.dir=C:\Tools\zap-home   # starts ZAP locally, loopback fake target only
 .\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-dev-host>/" -Zap   # Phase 4: tester browses CKYC dev, ZAP passive only
 .\tools\zap-passive-har.ps1 -Project "CKYC-7.0" -Hosts "<dev-host>" -Har C:\captures\x.har   # Phase 4 offline: HAR import, sends nothing
+.\tools\passive-checks-har.ps1 -Project "CKYC-7.0" -Hosts "<dev-host>" -Har C:\captures\x.har   # Phase 5 offline checks (recorder runs them automatically)
 mvn -pl projects/ckyc -am test                                  # REAL run: only with filled scope + user's go
 ```
 Always use `-am`: the parent POM is not installed in `.m2`, so `-pl projects/ckyc`
@@ -178,6 +179,9 @@ updated after every meaningful change without churning this architecture doc.
   ZAP only watches the tester's traffic or imports a HAR; no spider/active scan. Every lead is
   "To verify"; the per-run ZAP session (raw traffic) is deleted on close. See
   `vapt-automation/docs/PHASE4_ZAP_PASSIVE_ANALYSIS.md`.
+- **Phase 5 passive checks** (`core-engine/.../passive`, always on in the recorder): headers, cookies,
+  personal data / secrets in decrypted responses, data in URLs, error leakage, TLS. Values are inspected
+  in memory only; reports hold names, counts and endpoints. See `vapt-automation/docs/PHASE5_PASSIVE_CHECKS.md`.
 - **Phase 1 discovery** (`core-engine/.../discovery`, run via `tools/run-discovery.ps1`) is
   passive: it only reads a capture file the user exported and stores names/status codes, never
   values. Active testing needs the user's separate written go-ahead. See
