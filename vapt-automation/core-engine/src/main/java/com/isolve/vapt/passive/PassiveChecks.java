@@ -158,19 +158,31 @@ public final class PassiveChecks {
 
         // ---- headers ----
         if (doc && ok2xx) {
+            // The browser enforces every CSP it gets: each header AND each <meta http-equiv> tag.
             String csp = o.header("Content-Security-Policy");
+            List<String> policies = new ArrayList<>();
+            for (String h : o.headers("Content-Security-Policy")) if (h != null && !h.isBlank()) policies.add(h);
+            int headerPolicies = policies.size();
+            policies.addAll(metaCsp(o.responseBody));
+            String where = headerPolicies > 0 && policies.size() > headerPolicies ? "header + meta tag"
+                    : headerPolicies > 0 ? "header" : "meta tag";
             Result h1 = checks.get("P5-H01");
             h1.applicable++;
-            if (csp == null || csp.isBlank()) {
+            if (policies.isEmpty()) {
                 hit(h1, ep, o.header("Content-Security-Policy-Report-Only") != null ? "only report-only CSP" : "missing", null);
             } else {
-                String weak = weakCsp(csp);
-                if (weak != null) hit(h1, ep, weak, null);
-                else pass(h1, ep);
+                List<String> weak = cspWeaknesses(policies);
+                if (weak.isEmpty()) {
+                    pass(h1, ep + " (CSP in " + where + ")");
+                } else {
+                    hit(h1, ep, weak.get(0) + " (CSP in " + where + ")", null);
+                    for (int i = 1; i < weak.size(); i++) h1.reasons.merge(weak.get(i) + " (CSP in " + where + ")", 1, Integer::sum);
+                }
             }
             Result h2 = checks.get("P5-H02");
             h2.applicable++;
             String xfo = o.header("X-Frame-Options");
+            // frame-ancestors only works in a CSP header; browsers ignore it in a <meta> tag.
             boolean frameAncestors = csp != null && csp.toLowerCase(Locale.ROOT).contains("frame-ancestors");
             boolean xfoOk = xfo != null && (xfo.trim().equalsIgnoreCase("DENY") || xfo.trim().equalsIgnoreCase("SAMEORIGIN"));
             if (!xfoOk && !frameAncestors) hit(h2, ep, xfo == null ? "missing" : "invalid X-Frame-Options value", null);
@@ -457,17 +469,83 @@ public final class PassiveChecks {
                 "(?<![\\d.])(?:10\\.\\d{1,3}|192\\.168|172\\.(?:1[6-9]|2\\d|3[01]))\\.\\d{1,3}\\.\\d{1,3}(?![\\d.])"));
     }
 
-    private static String weakCsp(String csp) {
-        String c = csp.toLowerCase(Locale.ROOT);
-        String scriptSrc = directive(c, "script-src");
-        if (scriptSrc == null) scriptSrc = directive(c, "default-src");
-        if (scriptSrc == null) return "no script-src / default-src";
-        if (scriptSrc.contains("'unsafe-inline'") && !scriptSrc.contains("'nonce-") && !scriptSrc.contains("'sha")) {
-            return "script-src allows 'unsafe-inline'";
+    private static final Pattern META_TAG = Pattern.compile("(?is)<meta\\b[^>]*>");
+    private static final Pattern META_CSP = Pattern.compile("(?is)http-equiv\\s*=\\s*[\"']?\\s*content-security-policy\\s*[\"']?(?=[\\s/>])");
+    private static final Pattern META_CONTENT = Pattern.compile("(?is)\\bcontent\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')");
+
+    /** CSP policies set with &lt;meta http-equiv="Content-Security-Policy" content="..."&gt; in an HTML page. */
+    static List<String> metaCsp(String html) {
+        List<String> out = new ArrayList<>();
+        if (html == null || html.isEmpty()) return out;
+        String head = html.length() > 300_000 ? html.substring(0, 300_000) : html;
+        Matcher tags = META_TAG.matcher(head);
+        while (tags.find()) {
+            String tag = tags.group();
+            if (!META_CSP.matcher(tag).find()) continue;
+            Matcher c = META_CONTENT.matcher(tag);
+            if (c.find()) {
+                String v = c.group(1) != null ? c.group(1) : c.group(2);
+                v = v.replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'").replace("&amp;", "&").trim();
+                if (!v.isEmpty()) out.add(v);
+            }
         }
-        if (scriptSrc.contains("'unsafe-eval'")) return "script-src allows 'unsafe-eval'";
-        if (scriptSrc.matches(".*(?:^|\\s)(?:\\*|https?:|data:)(?:\\s|$).*")) return "script-src allows any source";
-        return null;
+        return out;
+    }
+
+    /** What one policy still allows for scripts/styles. A missing directive with no default-src allows everything. */
+    private record CspAllows(boolean scriptInline, boolean scriptEval, boolean scriptAny, boolean styleInline, boolean hasDefault) {
+    }
+
+    private static CspAllows allows(String policy) {
+        String c = policy.toLowerCase(Locale.ROOT);
+        String def = directive(c, "default-src");
+        String script = directive(c, "script-src");
+        if (script == null) script = def;
+        String style = directive(c, "style-src");
+        if (style == null) style = def;
+        boolean scriptInline = script == null || (script.contains("'unsafe-inline'") && !hasNonceOrHash(script));
+        boolean scriptEval = script == null || script.contains("'unsafe-eval'");
+        boolean scriptAny = script == null || anySource(script);
+        boolean styleInline = style == null || (style.contains("'unsafe-inline'") && !hasNonceOrHash(style));
+        return new CspAllows(scriptInline, scriptEval, scriptAny, styleInline, def != null);
+    }
+
+    /**
+     * Weaknesses of the effective policy. Every policy is enforced, so something is allowed only
+     * when ALL policies allow it (e.g. a header without script-src plus a meta tag with
+     * script-src 'unsafe-inline' still allows inline script).
+     */
+    static List<String> cspWeaknesses(List<String> policies) {
+        boolean inline = true, eval = true, any = true, styleInline = true, anyDefault = false;
+        for (String p : policies) {
+            CspAllows a = allows(p);
+            inline &= a.scriptInline();
+            eval &= a.scriptEval();
+            any &= a.scriptAny();
+            styleInline &= a.styleInline();
+            anyDefault |= a.hasDefault();
+        }
+        List<String> out = new ArrayList<>();
+        if (any) out.add("script-src allows any source (wildcard / scheme / no script-src)");
+        if (inline) out.add("script-src allows 'unsafe-inline'");
+        if (eval) out.add("script-src allows 'unsafe-eval'");
+        if (styleInline) out.add("style-src allows 'unsafe-inline'");
+        if (!anyDefault) out.add("no default-src fallback");
+        return out;
+    }
+
+    private static boolean hasNonceOrHash(String sources) {
+        return sources.contains("'nonce-") || sources.contains("'sha256-") || sources.contains("'sha384-") || sources.contains("'sha512-");
+    }
+
+    private static boolean anySource(String sources) {
+        for (String t : sources.trim().split("\\s+")) {
+            if (t.equals("*") || t.equals("https:") || t.equals("http:") || t.equals("data:") || t.equals("blob:")
+                    || t.matches("(?:https?://)?\\*(?:[:/].*)?")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String directive(String csp, String name) {

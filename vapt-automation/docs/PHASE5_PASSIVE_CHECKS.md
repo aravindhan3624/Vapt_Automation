@@ -24,7 +24,7 @@ HAR files have no TLS details, and CKYC bodies in a HAR are encrypted. Use the r
 ## Checks
 | Check | What it looks for | Checklist |
 |---|---|---|
-| P5-H01 | CSP missing, report-only, or weak (`unsafe-inline`, `unsafe-eval`, any-source) on pages | VAPT-010 |
+| P5-H01 | CSP missing, report-only, or weak (`unsafe-inline`, `unsafe-eval`, any-source, inline styles, no `default-src`) on pages. Reads the header **and** `<meta http-equiv>` tags and combines them the way the browser enforces them | VAPT-010 |
 | P5-H02 | No X-Frame-Options DENY/SAMEORIGIN and no CSP `frame-ancestors` on pages | VAPT-025 |
 | P5-H03 | HSTS missing or max-age < 180 days | VAPT-001 |
 | P5-H04 | `X-Content-Type-Options: nosniff` missing | VAPT-023 |
