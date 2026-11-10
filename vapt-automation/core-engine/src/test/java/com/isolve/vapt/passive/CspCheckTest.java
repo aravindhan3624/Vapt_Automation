@@ -40,7 +40,7 @@ public class CspCheckTest {
 
     @Test
     public void strictMetaOnlyPasses() {
-        String html = "<head><meta content='default-src &#39;self&#39;' http-equiv='content-security-policy'/></head>";
+        String html = "<head><meta content='default-src &#39;self&#39;; base-uri &#39;self&#39;; form-action &#39;self&#39;' http-equiv='content-security-policy'/></head>";
         PassiveChecks.Result r = h01(null, html);
         assertEquals(r.status, PassiveChecks.OK, r.reasons.toString());
         assertTrue(r.passEvidence.get(0).contains("meta tag"));
@@ -49,13 +49,29 @@ public class CspCheckTest {
     @Test
     public void strictHeaderWinsOverWeakMeta() {
         String html = "<meta http-equiv=\"Content-Security-Policy\" content=\"script-src * 'unsafe-inline' 'unsafe-eval'\">";
-        PassiveChecks.Result r = h01("default-src 'self'", html);
+        PassiveChecks.Result r = h01("default-src 'self'; base-uri 'self'; form-action 'self'", html);
         assertEquals(r.status, PassiveChecks.OK, "both policies apply, the strict header still blocks: " + r.reasons);
     }
 
     @Test
     public void nonceMakesUnsafeInlineIgnored() {
-        assertTrue(PassiveChecks.cspWeaknesses(List.of("default-src 'self'; script-src 'self' 'nonce-abc' 'unsafe-inline'")).isEmpty());
+        assertTrue(PassiveChecks.cspWeaknesses(List.of("default-src 'self'; script-src 'self' 'nonce-abc' 'unsafe-inline'; base-uri 'none'; form-action 'self'")).isEmpty());
+    }
+
+    /** CKYC 7.0 dev shape (2026-11-10): header has only frame-ancestors, the real policy is in a meta tag. */
+    @Test
+    public void ckycHeaderPlusMetaShape() {
+        String meta = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; "
+                + "img-src 'self' data: blob: https://*.example.in; object-src 'none'; connect-src 'self' blob: https://*.example.in http://127.0.0.1:9999";
+        PassiveChecks.Result r = h01("frame-ancestors 'self'",
+                "<head><meta http-equiv=\"Content-Security-Policy\" content=\"" + meta + "\"></head>");
+        String reasons = r.reasons.keySet().toString();
+        assertFalse(reasons.contains("script-src allows"), "scripts are limited to 'self' by the meta policy: " + reasons);
+        assertFalse(reasons.contains("no default-src"), reasons);
+        assertTrue(reasons.contains("style-src allows 'unsafe-inline'"), reasons);
+        assertTrue(reasons.contains("no base-uri"), reasons);
+        assertTrue(reasons.contains("no form-action"), reasons);
+        assertTrue(reasons.contains("connect-src allows a plain-http source"), reasons);
     }
 
     @Test

@@ -531,6 +531,23 @@ public final class PassiveChecks {
         if (eval) out.add("script-src allows 'unsafe-eval'");
         if (styleInline) out.add("style-src allows 'unsafe-inline'");
         if (!anyDefault) out.add("no default-src fallback");
+        // These directives never fall back to default-src: missing in every policy = anything allowed.
+        for (String d : List.of("base-uri", "form-action")) {
+            boolean defined = false;
+            for (String p : policies) defined |= directive(p.toLowerCase(Locale.ROOT), d) != null;
+            if (!defined) out.add("no " + d + " (does not fall back to default-src)");
+        }
+        // Plain-http sources (e.g. a leftover local dev endpoint) in any policy.
+        for (String p : policies) {
+            String c = p.toLowerCase(Locale.ROOT);
+            for (String d : List.of("default-src", "script-src", "connect-src", "frame-src", "img-src", "style-src")) {
+                String v = directive(c, d);
+                if (v != null && v.matches("(?:^|.*\\s)http://\\S+.*")) {
+                    String reason = d + " allows a plain-http source";
+                    if (!out.contains(reason)) out.add(reason);
+                }
+            }
+        }
         return out;
     }
 

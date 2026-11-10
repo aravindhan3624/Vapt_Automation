@@ -61,7 +61,7 @@ public class PassiveChecksTest {
                 "{\"ok\":true}", "Cache-Control", "no-store", "X-Content-Type-Options", "nosniff"));
 
         pc.observe(obs("GET", "https://dev.example/app/secure", "document", 200, "text/html", "<html>ok</html>",
-                "Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'", "X-Frame-Options", "DENY",
+                "Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'", "X-Frame-Options", "DENY",
                 "Strict-Transport-Security", "max-age=31536000; includeSubDomains", "X-Content-Type-Options", "nosniff",
                 "Set-Cookie", "XSRF=abc; Secure; HttpOnly; SameSite=Strict"));
         pc.observeSubresource("https://dev.example/app/home", "http://cdn.example/lib.js");
