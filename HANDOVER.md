@@ -1,6 +1,27 @@
 # HANDOVER.md — VAPT_Codes
 
-_Last verified: 2026-11-11. Read this alongside CLAUDE.md before continuing work._
+_Last verified: 2026-11-11 (pm). Read this alongside CLAUDE.md before continuing work._
+
+## 2026-11-11 (pm) — Phase 6 ran on CKYC dev + encryption bridge
+- FIRST REAL FINDING: Phase 6 UNAUTH_DOCUMENT_ACCESS run confirmed 9 customer KYC documents
+  (/CKYC_IMAGE/...) served with NO login (VAPT-049, High). Report written to Reviews/
+  CKYC_VAPT_Confirmed_Finding_Unauth_Documents_11-Nov-2026.(html|pdf) (Reviews/ is gitignored).
+- Encryption bridge for the encrypted API checks:
+  - core-engine: new `ResponseAdapter` interface; `HttpActiveTarget` gained an optional response
+    adapter (decrypt + reinterpret status) + a second constructor.
+  - projects/ckyc now depends on `crypto` and has src/main/java: `CkycEnvelopeBridge`
+    (bodyCipher + responseAdapter over `EnvelopeCrypto`; effectiveStatus surfaces the inner
+    statusCode when the HTTP wrapper is 200) and `CkycActiveRunner` (main; server key from
+    VAPT_SERVER_PUBLIC_KEY, session from VAPT_SESSION_*). `tools/active-checks.ps1` now runs
+    CkycActiveRunner and takes -ServerKey / -OtherIds.
+  - projects/ckyc surefire now also includes **/active/*IT.java and sets VAPT_ACTIVE_APPROVAL for
+    the local IT; `CkycEnvelopeActiveIT` passes (unauth inner 401 Secure, IDOR inner 403 Secure,
+    public 200 Confirmed, id swapped inside the ENCRYPTED body, approve/reject never sent).
+- Full `mvn install` OK; CKYC dry run 13/13 (+1 envelope IT). The generic `ActiveRunnerMain` in
+  core-engine stays for non-CKYC projects.
+- To run encrypted checks the tester supplies the CKYC server public key (-ServerKey) and, for the
+  baseline, their session (VAPT_SESSION_VALUE). Not yet run with the bridge on CKYC dev.
+
 
 ## 2026-11-11 — Phase 6: active checks, approval-gated (local only; NOT yet run on CKYC dev)
 - New `core-engine/.../active` package. Read-only re-sends of recorded calls with weakened auth.

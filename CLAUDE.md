@@ -183,6 +183,9 @@ updated after every meaningful change without churning this architecture doc.
 - **Phase 5 passive checks** (`core-engine/.../passive`, always on in the recorder): headers, cookies,
   personal data / secrets in decrypted responses, data in URLs, error leakage, TLS. Values are inspected
   in memory only; reports hold names, counts and endpoints. See `vapt-automation/docs/PHASE5_PASSIVE_CHECKS.md`.
+- **Phase 6 encryption bridge** (`projects/ckyc/.../active`: `CkycEnvelopeBridge`, `CkycActiveRunner`):
+  re-encrypts the (id-swapped) plain body into CKYC's envelope and decrypts the reply, so the no-login
+  and IDOR checks also work on encrypted API endpoints. Server key via `VAPT_SERVER_PUBLIC_KEY` / `-ServerKey`.
 - **Phase 6 active checks** (`core-engine/.../active`, run via `tools/active-checks.ps1`): read-only
   re-sends of recorded calls with weakened auth (no token / another id / tampered token). Fails closed:
   `ActiveTestGate` needs config scope + non-PROD + approvalReference matching the config AND the

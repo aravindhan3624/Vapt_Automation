@@ -36,8 +36,15 @@ public final class HttpActiveTarget implements ActiveTarget {
     private final String sessionHeaderValue;
     private final String tamperedSessionValue;
     private final BodyCipher cipher;
+    private final ResponseAdapter responseAdapter;
 
     public HttpActiveTarget(String sessionHeaderName, String sessionHeaderValue, String tamperedSessionValue, BodyCipher cipher) {
+        this(sessionHeaderName, sessionHeaderValue, tamperedSessionValue, cipher, null);
+    }
+
+    /** @param responseAdapter decrypts / reinterprets the response (e.g. CKYC envelope); null = raw. */
+    public HttpActiveTarget(String sessionHeaderName, String sessionHeaderValue, String tamperedSessionValue,
+                            BodyCipher cipher, ResponseAdapter responseAdapter) {
         this.client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .connectTimeout(Duration.ofSeconds(15))
@@ -46,6 +53,7 @@ public final class HttpActiveTarget implements ActiveTarget {
         this.sessionHeaderValue = sessionHeaderValue;
         this.tamperedSessionValue = tamperedSessionValue;
         this.cipher = cipher;
+        this.responseAdapter = responseAdapter;
     }
 
     @Override
@@ -77,6 +85,10 @@ public final class HttpActiveTarget implements ActiveTarget {
         }
 
         HttpResponse<String> resp = client.send(b.build(), HttpResponse.BodyHandlers.ofString());
+        if (responseAdapter != null) {
+            return responseAdapter.adapt(resp.statusCode(), resp.body(),
+                    name -> resp.headers().firstValue(name).orElse(null));
+        }
         return new ActiveResponse(resp.statusCode(), resp.body(), false);
     }
 

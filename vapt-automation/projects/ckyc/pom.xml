@@ -27,6 +27,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.isolve.vapt</groupId>
+            <artifactId>crypto</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
         </dependency>
@@ -50,7 +55,12 @@
                 <configuration>
                     <includes>
                         <include>**/*TestRunner.java</include>
+                        <include>**/active/*IT.java</include>
                     </includes>
+                    <environmentVariables>
+                        <!-- Only exercises the Phase 6 gate's env-var check in the local envelope IT. -->
+                        <VAPT_ACTIVE_APPROVAL>ISOLVE-VAPT-CKYC-2026-001</VAPT_ACTIVE_APPROVAL>
+                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>

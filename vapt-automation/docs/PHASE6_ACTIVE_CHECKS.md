@@ -55,11 +55,34 @@ $env:VAPT_ACTIVE_APPROVAL = "ISOLVE-VAPT-CKYC-2026-001"      # your approval ref
 - Default check: `UNAUTH_DOCUMENT_ACCESS` — directly tests whether the customer Photo/POI/POA URLs
   from your capture can be opened with no login. This is the active confirmation of the Phase 5
   document lead, and it needs no session and no encryption.
-- Add more with `-Checks "UNAUTH_DOCUMENT_ACCESS,UNAUTHENTICATED_ACCESS"` and `-OtherIds "999"` for
-  IDOR. The API read endpoints are encrypted on the wire; re-sending those with a modified body
-  needs the encryption bridge (next step) and is skipped until then — the document and
-  unauthenticated-GET checks run today.
+- Add more with `-Checks "UNAUTH_DOCUMENT_ACCESS,UNAUTHENTICATED_ACCESS,IDOR_BOLA"` and
+  `-OtherIds "<another test customer ref>"` for IDOR.
 - Pacing is 1 request/second by default (`-DelayMs`), with a hard cap (`-Max 200`).
+
+## Encrypted API checks (the encryption bridge)
+The CKYC API read endpoints (e.g. `getCustomerDetailsV2`) encrypt their request and response. The
+runner re-encrypts the (id-swapped) plain body into CKYC's envelope
+(RSA-OAEP-SHA256 + AES-256-GCM), sends it, and decrypts the reply — including the inner
+`statusCode` — so the no-login and IDOR checks work on those endpoints too.
+
+To enable them you need two things, both supplied at run time and never stored:
+1. **The CKYC server public key** (public material) via `-ServerKey` — a `.pem`/base64 string or a
+   file path. Get it from the app's login/config response or its front-end JS, or ask the dev team.
+   Set the env var equivalently with `VAPT_SERVER_PUBLIC_KEY`.
+2. **Your session**, for the baseline comparison only: `VAPT_SESSION_VALUE` (the `Cookie` value from
+   DevTools). The no-login check deliberately sends no session; IDOR uses your session with another
+   customer's id.
+
+```powershell
+$env:VAPT_ACTIVE_APPROVAL = "ISOLVE-VAPT-CKYC-2026-001"
+$env:VAPT_SESSION_VALUE   = "__Host-ckyc_session=...; __Host-ckyc_refresh=..."
+.\tools\active-checks.ps1 -Config "projects\ckyc\config\ckyc-config.yaml" `
+    -Capture "C:\captures\CKYC-7.0\...capture.jsonl" -Approval "ISOLVE-VAPT-CKYC-2026-001" `
+    -ServerKey "C:\captures\ckyc-server-public-key.pem" -OtherIds "<another test customer ref>" `
+    -Checks "UNAUTHENTICATED_ACCESS,IDOR_BOLA"
+```
+Without `-ServerKey`, only the document check runs; the encrypted checks are refused with a clear
+message (nothing is sent).
 
 ## Output (in `C:\captures\CKYC-7.0\`)
 `*-active-*.html/.csv/.json` — confirmed weaknesses first, then securely-denied checks (closure
@@ -74,3 +97,7 @@ endpoint and the weakened-vs-baseline HTTP status, and writes no session values 
 - `HttpActiveTargetLocalTest`: end-to-end on loopback — a document served with no auth is CONFIRMED,
   a protected API is Secure, the approve/update endpoints in the capture are never fetched, the
   no-auth re-send carries no cookie, and no session value reaches the report.
+- `CkycEnvelopeActiveIT` (projects/ckyc): end-to-end through the encryption bridge against a fake
+  CKYC-envelope server — the no-login re-send is denied (inner 401 → Secure), the IDOR re-send for
+  another id is denied (inner 403 → Secure), a public endpoint is CONFIRMED, the swapped id really
+  travelled inside the encrypted body, and the approve/reject endpoint was never sent.
