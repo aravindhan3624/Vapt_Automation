@@ -129,7 +129,7 @@ Component mapping (requested names → where they live):
 | 3 | Recorder (Playwright) + discovery from recordings | Only your own browsing | **Done 2026-11-07** (local IT pass); first CKYC dev recording pending (tester) |
 | 4 | ZAP passive analysis: live through the recorder (`-Zap`) or offline HAR import; scope = approved host only; leads "To verify" linked to checklist items; redacted reports ([PHASE4](PHASE4_ZAP_PASSIVE_ANALYSIS.md)) | Passive only (no extra requests) | **Done 2026-11-09** (local ITs pass); first CKYC dev run pending (tester) |
 | 5 | Passive checks: headers, cookies, personal data / secrets in decrypted responses, data in URLs, error leakage, TLS basics ([PHASE5](PHASE5_PASSIVE_CHECKS.md)) | No extra traffic | **Done 2026-11-10** (unit + local ITs pass); first CKYC dev run pending (tester) |
-| 6 | Active modules, each separately approved by you in writing | **Yes — only after approval** | Not started |
+| 6 | Active checks (read-only auth/IDOR/JWT/document re-sends), approval-gated ([PHASE6](PHASE6_ACTIVE_CHECKS.md)) | **Yes — only after written approval** | **Built 2026-11-11** (gate + guard + engine, local ITs pass); not yet run on CKYC dev (tester, with approval) |
 | 7 | Customer report: findings first, closure evidence for every item, false-positive register | No | Format exists (02 Nov report) |
 | 8 | Validate everything on the local fake target before any run on the target | Local only | Fake target exists |
 

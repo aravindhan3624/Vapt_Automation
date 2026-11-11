@@ -141,6 +141,7 @@ mvn -pl zap-integration -am test -Dzap.install.dir=C:\Tools\ZAP_2.17.0 -Dzap.hom
 .\tools\record.ps1 -Project "CKYC-7.0" -Role Maker -StartUrl "https://<approved-dev-host>/" -Zap   # Phase 4: tester browses CKYC dev, ZAP passive only
 .\tools\zap-passive-har.ps1 -Project "CKYC-7.0" -Hosts "<dev-host>" -Har C:\captures\x.har   # Phase 4 offline: HAR import, sends nothing
 .\tools\passive-checks-har.ps1 -Project "CKYC-7.0" -Hosts "<dev-host>" -Har C:\captures\x.har   # Phase 5 offline checks (recorder runs them automatically)
+.\tools\active-checks.ps1 -Config projects\ckyc\config\ckyc-config.yaml -Capture C:\captures\CKYC-7.0\x.capture.jsonl -Approval <ref>   # Phase 6: approval-gated, read-only (needs VAPT_ACTIVE_APPROVAL=<ref> + filled scope)
 mvn -pl projects/ckyc -am test                                  # REAL run: only with filled scope + user's go
 ```
 Always use `-am`: the parent POM is not installed in `.m2`, so `-pl projects/ckyc`
@@ -182,6 +183,11 @@ updated after every meaningful change without churning this architecture doc.
 - **Phase 5 passive checks** (`core-engine/.../passive`, always on in the recorder): headers, cookies,
   personal data / secrets in decrypted responses, data in URLs, error leakage, TLS. Values are inspected
   in memory only; reports hold names, counts and endpoints. See `vapt-automation/docs/PHASE5_PASSIVE_CHECKS.md`.
+- **Phase 6 active checks** (`core-engine/.../active`, run via `tools/active-checks.ps1`): read-only
+  re-sends of recorded calls with weakened auth (no token / another id / tampered token). Fails closed:
+  `ActiveTestGate` needs config scope + non-PROD + approvalReference matching the config AND the
+  `VAPT_ACTIVE_APPROVAL` env var; `NonDestructiveGuard` re-sends only read-only endpoints. Never
+  creates/updates/approves/deletes/submits. See `vapt-automation/docs/PHASE6_ACTIVE_CHECKS.md`.
 - **Phase 1 discovery** (`core-engine/.../discovery`, run via `tools/run-discovery.ps1`) is
   passive: it only reads a capture file the user exported and stores names/status codes, never
   values. Active testing needs the user's separate written go-ahead. See

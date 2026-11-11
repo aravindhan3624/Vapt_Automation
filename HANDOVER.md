@@ -1,6 +1,32 @@
 # HANDOVER.md — VAPT_Codes
 
-_Last verified: 2026-11-10. Read this alongside CLAUDE.md before continuing work._
+_Last verified: 2026-11-11. Read this alongside CLAUDE.md before continuing work._
+
+## 2026-11-11 — Phase 6: active checks, approval-gated (local only; NOT yet run on CKYC dev)
+- New `core-engine/.../active` package. Read-only re-sends of recorded calls with weakened auth.
+  - `ActiveTestGate` fails closed: needs config scope + non-PROD + confirmedActiveTesting +
+    approvalReference matching BOTH config scope AND env var VAPT_ACTIVE_APPROVAL + approved hosts +
+    enabled checks. `ActiveChecks` can't be built without the gate's Authorization token.
+  - `NonDestructiveGuard`: only read-only paths re-sent; create/update/delete/approve/reject/lock/
+    revoke/submit/login/crud/bulk/upload + DELETE/PUT/PATCH + unknown => refused (fail closed).
+  - Checks: UNAUTHENTICATED_ACCESS, UNAUTH_DOCUMENT_ACCESS, IDOR_BOLA, JWT_TAMPER. Confirmed only on
+    a real 2xx; else Secure (closure evidence) or Inconclusive. Rate-limited + request budget.
+  - `ActiveTarget` interface; `HttpActiveTarget` (java.net.http, no redirects/retries, session from
+    env only); `CaptureCallLoader` reads recorder .capture.jsonl; `ActiveRunnerMain` CLI;
+    `ActiveCheckReport` (confirmed first; approval ref recorded; no session/body values written).
+- Tool: `tools/active-checks.ps1` (default check UNAUTH_DOCUMENT_ACCESS; needs VAPT_ACTIVE_APPROVAL
+  set + matching -Approval + a filled scope block). Doc: `docs/PHASE6_ACTIVE_CHECKS.md`.
+- Tests (local only): `ActivePhase6Test` 9/9 (gate refuses without confirm / PROD / no env var /
+  ref mismatch; guard refuses state-changing; engine confirms unauth, marks protected secure, never
+  re-sends state-changing, never hits out-of-scope); `HttpActiveTargetLocalTest` end-to-end on
+  loopback (doc-no-auth CONFIRMED, protected API Secure, approve/update never fetched, no-auth
+  carries no cookie, no session value in report). Full `mvn install` OK; CKYC dry run 13/13.
+- Encrypted POST read endpoints need the crypto bridge to re-send a modified body; until wired,
+  those IDOR/unauth-POST checks are skipped. Document + unauthenticated-GET checks run today.
+- NOT run against CKYC dev yet: needs the tester's written approval in the config scope + env var.
+- Known: another session's Phase 5 CSP tweak (PassiveChecks.java, deleted CspCheckTest.java) is
+  uncommitted and was left untouched by the Phase 6 commit.
+
 
 ## 2026-11-10 — Phase 5: passive checks (local only)
 - New package `core-engine/.../passive`: `PassiveObservation` (in-memory only), `SensitiveData`
