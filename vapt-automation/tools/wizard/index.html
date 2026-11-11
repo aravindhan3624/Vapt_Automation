@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VAPT Automation - Run Wizard</title>
+<style>
+:root{--ink:#1b2430;--muted:#5d6b7a;--line:#d9e0e8;--navy:#0f2a4a;--navy2:#13365e;--red:#b3261e;--amber:#9a6200;--green:#1e7a46;--bg:#eef2f6;--card:#fff;}
+*{box-sizing:border-box;} body{margin:0;font-family:"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg);}
+header{background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;padding:14px 22px;display:flex;align-items:center;gap:12px;}
+header h1{font-size:16pt;margin:0;font-weight:600;} header .tag{font-size:9pt;background:rgba(255,255,255,.18);padding:2px 8px;border-radius:9px;}
+.wrap{max-width:900px;margin:18px auto;padding:0 16px;display:grid;grid-template-columns:200px 1fr;gap:16px;}
+.steps{list-style:none;margin:0;padding:0;}
+.steps li{padding:9px 12px;border-left:3px solid transparent;color:var(--muted);font-size:10pt;cursor:default;}
+.steps li.active{border-left-color:var(--navy);color:var(--navy);font-weight:600;background:#fff;border-radius:0 6px 6px 0;}
+.steps li.done{color:var(--green);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;box-shadow:0 1px 3px rgba(16,42,74,.06);}
+.card h2{margin:0 0 4px;font-size:13.5pt;color:var(--navy);} .card p.sub{margin:0 0 14px;color:var(--muted);font-size:9.5pt;}
+label{display:block;font-size:9.5pt;font-weight:600;margin:10px 0 3px;color:#2a3542;}
+input[type=text],input[type=date],input[type=password],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:10pt;background:#fff;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px rgba(15,42,74,.12);}
+.hint{font-size:8.6pt;color:var(--muted);margin:3px 0 0;}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.checks{display:grid;grid-template-columns:1fr;gap:6px;margin-top:4px;}
+.checks label{display:flex;align-items:flex-start;gap:8px;font-weight:400;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;cursor:pointer;}
+.checks input{margin-top:2px;} .checks .t{font-weight:600;} .checks .d{font-size:8.6pt;color:var(--muted);}
+.actions{display:flex;justify-content:space-between;margin-top:18px;gap:10px;}
+button{font:inherit;font-size:10pt;border-radius:6px;padding:9px 16px;border:1px solid var(--navy);cursor:pointer;}
+button.primary{background:var(--navy);color:#fff;} button.primary:hover{background:var(--navy2);}
+button.ghost{background:#fff;color:var(--navy);} button:disabled{opacity:.5;cursor:not-allowed;}
+.radio-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px;}
+.radio-cards label{border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-weight:600;color:var(--navy);}
+.radio-cards input{display:none;} .radio-cards label.sel{border-color:var(--navy);background:#eaf1f9;}
+.radio-cards .d{font-weight:400;font-size:8.6pt;color:var(--muted);margin-top:4px;}
+pre{background:#0f2133;color:#d6e2f0;border-radius:8px;padding:12px;font:9pt Consolas,monospace;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow:auto;}
+.pill{display:inline-block;font-size:8.3pt;font-weight:700;padding:1px 7px;border-radius:9px;color:#fff;}
+.pill.read{background:var(--green);} .pill.warn{background:var(--amber);}
+.modal-bg{position:fixed;inset:0;background:rgba(10,20,35,.55);display:none;align-items:center;justify-content:center;z-index:50;}
+.modal{background:#fff;border-radius:12px;max-width:520px;width:92%;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+.modal h3{margin:0 0 8px;color:var(--navy);} .modal .ico{font-size:30pt;text-align:center;margin-bottom:6px;}
+.modal pre{max-height:260px;}
+.banner{background:#fff3cd;border:1px solid #e0c158;border-radius:6px;padding:8px 11px;font-size:9pt;margin-bottom:12px;}
+.hide{display:none;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px;}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header><h1>VAPT Automation</h1><span class="tag">Run Wizard</span><span class="tag" id="projTag"></span></header>
+<div class="wrap">
+  <ul class="steps">
+    <li data-s="1" class="active">1 &middot; Project</li>
+    <li data-s="2">2 &middot; Authorization</li>
+    <li data-s="3">3 &middot; Action</li>
+    <li data-s="4">4 &middot; Review &amp; run</li>
+  </ul>
+  <div>
+    <!-- Step 1 -->
+    <section class="card" data-step="1">
+      <h2>Project &amp; environment</h2>
+      <p class="sub">Which application are you testing, and in which environment?</p>
+      <label>Project name</label>
+      <input type="text" id="project" placeholder="e.g. CKYC-7.0 or OrangeHRM" autocomplete="off">
+      <div class="row">
+        <div><label>Environment</label>
+          <select id="environment">
+            <option>DEV</option><option>SIT</option><option>STAGING</option><option>QA</option><option>SANDBOX</option><option>UAT</option>
+          </select>
+          <p class="hint">Production is blocked by the framework.</p>
+        </div>
+        <div><label>Approved host</label>
+          <input type="text" id="host" placeholder="app.dev.example (no https://)" autocomplete="off">
+          <p class="hint">Only this host is tested. No scheme, no path.</p>
+        </div>
+      </div>
+      <div class="actions"><span></span><button class="primary" onclick="next(1)">Continue</button></div>
+    </section>
+
+    <!-- Step 2 -->
+    <section class="card hide" data-step="2">
+      <h2>Authorization scope</h2>
+      <p class="sub">Who approved this test? The tool refuses to run without a real approval reference.</p>
+      <label>Authorized by (name / role)</label>
+      <input type="text" id="authorizedBy" placeholder="e.g. Head of Information Security" autocomplete="off">
+      <div class="row">
+        <div><label>Approval reference</label>
+          <input type="text" id="approvalReference" placeholder="ticket / email / engagement ref" autocomplete="off"></div>
+        <div><label>Approval date</label><input type="date" id="approvalDate"></div>
+      </div>
+      <div class="actions"><button class="ghost" onclick="go(1)">Back</button><button class="primary" onclick="next(2)">Continue</button></div>
+    </section>
+
+    <!-- Step 3 -->
+    <section class="card hide" data-step="3">
+      <h2>What do you want to run?</h2>
+      <p class="sub">Record traffic, run passive checks, or run approval-gated read-only active checks.</p>
+      <div class="radio-cards" id="actionCards">
+        <label data-a="record"><input type="radio" name="action" value="record" checked>Record<div class="d">Navigate &amp; capture</div></label>
+        <label data-a="passive"><input type="radio" name="action" value="passive">Passive<div class="d">Headers, cookies, data</div></label>
+        <label data-a="active"><input type="radio" name="action" value="active">Active<div class="d">Auth / IDOR re-sends</div></label>
+      </div>
+
+      <div id="form-record" class="afn">
+        <div class="row">
+          <div><label>Role</label><input type="text" id="role" placeholder="Maker / Checker / Admin" value="Maker"></div>
+          <div><label>Start URL</label><input type="text" id="startUrl" placeholder="https://app.dev.example/"></div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:12px;">
+          <input type="checkbox" id="zap"> Also run OWASP ZAP passive analysis (adds ~1 min)</label>
+      </div>
+
+      <div id="form-passive" class="afn hide">
+        <label>HAR file (exported from the browser Network tab)</label>
+        <input type="text" id="harFile" placeholder="C:\captures\walk.har">
+        <p class="hint">Or just record (the recorder runs passive checks automatically).</p>
+      </div>
+
+      <div id="form-active" class="afn hide">
+        <div class="banner">Active checks re-send your recorded calls with the login weakened. Read-only: never creates, updates, approves, deletes or submits. Approval-gated.</div>
+        <label>Capture file</label>
+        <select id="captureFile" onchange="loadEndpoints()"><option value="">(enter a project name first)</option></select>
+        <p class="hint">Recorded sessions found in C:\captures\&lt;project&gt;\.</p>
+
+        <div id="endpointsPanel" class="hide">
+          <label style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Endpoints in this capture <span class="hint" id="epCount"></span></span>
+            <button type="button" class="ghost" style="padding:4px 10px;font-size:9pt" onclick="saveLabels()">Save labels</button>
+          </label>
+          <p class="hint">Edit the module name and add your own comment per endpoint. These save next to the capture and appear in the report. Updated live as you type.</p>
+          <div style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:6px;">
+            <table style="width:100%;border-collapse:collapse;font-size:9pt;">
+              <thead><tr style="position:sticky;top:0;background:#f3f5f7;">
+                <th style="text-align:left;padding:6px 8px;">Endpoint</th><th style="text-align:left;padding:6px 8px;width:120px;">Module</th><th style="text-align:left;padding:6px 8px;width:200px;">Your comment</th></tr></thead>
+              <tbody id="epBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <label>Checks to run</label>
+        <div class="checks" id="activeChecks">
+          <label><input type="checkbox" value="UNAUTH_DOCUMENT_ACCESS" checked><span><span class="t">Unauthenticated document access</span> <span class="pill read">read-only</span><div class="d">Fetch recorded document URLs with no login.</div></span></label>
+          <label><input type="checkbox" value="UNAUTHENTICATED_ACCESS"><span><span class="t">Unauthenticated API access</span> <span class="pill read">read-only</span><div class="d">Re-send a read API call with no login. Needs the server key below.</div></span></label>
+          <label><input type="checkbox" value="IDOR_BOLA"><span><span class="t">IDOR / BOLA</span> <span class="pill read">read-only</span><div class="d">Re-send for another object id. Needs the server key and "other id".</div></span></label>
+          <label><input type="checkbox" value="JWT_TAMPER"><span><span class="t">JWT tamper</span> <span class="pill read">read-only</span><div class="d">Re-send with an alg:none / unsigned token.</div></span></label>
+        </div>
+        <div class="row">
+          <div><label>Other object id (for IDOR)</label><input type="text" id="otherIds" placeholder="another test customer / record id"></div>
+          <div><label>Server public key (encrypted apps)</label><input type="text" id="serverKey" placeholder="C:\captures\server-public-key.pem"></div>
+        </div>
+        <label>Your session cookie (baseline only - not saved to disk)</label>
+        <input type="password" id="sessionValue" placeholder="Cookie value from DevTools; leave blank for document-only" autocomplete="off">
+        <p class="hint">Used only to compare against; it is passed to the run in memory and never written to any file.</p>
+      </div>
+
+      <div class="actions"><button class="ghost" onclick="go(2)">Back</button><button class="primary" onclick="next(3)">Review</button></div>
+    </section>
+
+    <!-- Step 4 -->
+    <section class="card hide" data-step="4">
+      <h2>Review &amp; run</h2>
+      <p class="sub">This is the configuration and command that will run. Nothing is sent until you click Run.</p>
+      <label>Project config that will be saved</label>
+      <pre id="previewConfig"></pre>
+      <label>Command</label>
+      <pre id="previewCmd"></pre>
+      <div class="actions"><button class="ghost" onclick="go(3)">Back</button>
+        <button class="primary" id="runBtn" onclick="run()">Save &amp; run</button></div>
+    </section>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal">
+  <div class="ico" id="mIco"></div><h3 id="mTitle"></h3><div id="mBody"></div>
+  <div class="actions"><span></span><button class="primary" id="mOk" onclick="closeModal()">OK</button></div>
+</div></div>
+
+<script>
+const TOKEN = window.__VAPT_TOKEN__ || "";
+const $ = id => document.getElementById(id);
+let step = 1;
+function go(s){step=s;document.querySelectorAll('[data-step]').forEach(e=>e.classList.toggle('hide',+e.dataset.step!==s));
+  document.querySelectorAll('.steps li').forEach(li=>{const n=+li.dataset.s;li.classList.toggle('active',n===s);li.classList.toggle('done',n<s);});}
+function val(id){return ($(id).value||'').trim();}
+function action(){return document.querySelector('input[name=action]:checked').value;}
+
+document.getElementById('actionCards').addEventListener('change',()=>{
+  const a=action();document.querySelectorAll('.radio-cards label').forEach(l=>l.classList.toggle('sel',l.dataset.a===a));
+  ['record','passive','active'].forEach(f=>$('form-'+f).classList.toggle('hide',f!==a));
+});
+document.querySelector('.radio-cards label[data-a=record]').classList.add('sel');
+
+function next(from){
+  if(from===1){ if(!val('project'))return warn('Enter a project name.'); if(!val('host'))return warn('Enter the approved host.');
+    $('projTag').textContent=val('project'); loadCaptures(); }
+  if(from===2){ if(!val('authorizedBy')||val('authorizedBy').startsWith('Name /'))return warn('Enter the real approver name/role.');
+    if(!val('approvalReference'))return warn('Enter the approval reference.'); }
+  if(from===3){ buildPreview(); }
+  go(from+1);
+}
+
+async function loadCaptures(){
+  if(action()!=='active')return;
+  try{const r=await api('/api/captures',{project:val('project')});
+    const sel=$('captureFile');sel.innerHTML='';
+    if(!r.files||!r.files.length){sel.innerHTML='<option value="">(no capture files found - record first)</option>';return;}
+    r.files.forEach(f=>{const o=document.createElement('option');o.value=f.path;o.textContent=f.name;sel.appendChild(o);});
+  }catch(e){/* listener offline preview */}
+}
+
+function configYaml(){
+  return `projectName: "${val('project')}"\nenvironment: ${val('environment')}\napiBaseUrl: "https://${val('host')}"\nbaseUrl: "https://${val('host')}"\nscope:\n  authorizedBy: "${val('authorizedBy')}"\n  approvalReference: "${val('approvalReference')}"\n  approvalDate: "${val('approvalDate')}"\n  allowedEnvironments: "${val('environment')} only"\n`;
+}
+function command(){
+  const a=action();
+  if(a==='record'){let c=`.\\tools\\record.ps1 -Project "${val('project')}" -Role "${val('role')}" -StartUrl "${val('startUrl')}"`;if($('zap').checked)c+=' -Zap';return c;}
+  if(a==='passive')return `.\\tools\\passive-checks-har.ps1 -Project "${val('project')}" -Hosts "${val('host')}" -Har "${val('harFile')}"`;
+  const checks=[...document.querySelectorAll('#activeChecks input:checked')].map(c=>c.value).join(',');
+  let c=`$env:VAPT_ACTIVE_APPROVAL="${val('approvalReference')}"\n.\\tools\\active-checks.ps1 -Config "projects\\${val('project')}\\config\\${val('project')}-config.yaml" -Capture "<selected capture>" -Approval "${val('approvalReference')}" -Hosts "${val('host')}" -Checks "${checks}"`;
+  if(val('otherIds'))c+=` -OtherIds "${val('otherIds')}"`;
+  if(val('serverKey'))c+=` -ServerKey "${val('serverKey')}"`;
+  if(val('sessionValue'))c=`$env:VAPT_SESSION_VALUE="(entered)"\n`+c;
+  return c;
+}
+function buildPreview(){ $('previewConfig').textContent=configYaml(); $('previewCmd').textContent=command(); }
+
+// ---- dynamic endpoints review ----
+let endpointLabels={};   // key -> {module, comment}
+async function loadEndpoints(){
+  const cap=$('captureFile').value; const panel=$('endpointsPanel'); const body=$('epBody');
+  if(!cap){panel.classList.add('hide');return;}
+  body.innerHTML='<tr><td colspan="3" style="padding:8px;color:#5d6b7a">Loading endpoints...</td></tr>';
+  panel.classList.remove('hide');
+  try{
+    const r=await api('/api/endpoints',{captureFile:cap});
+    const eps=r.endpoints||[]; endpointLabels={}; body.innerHTML='';
+    $('epCount').textContent='('+eps.length+' unique)';
+    eps.forEach((e,i)=>{
+      endpointLabels[e.key]={module:e.module||'',comment:''};
+      const tr=document.createElement('tr'); tr.style.borderTop='1px solid var(--line)';
+      tr.innerHTML=`<td style="padding:5px 8px;"><code style="font-size:8.5pt">${esc(e.key)}</code><span class="hint"> &times;${e.count}</span></td>`+
+        `<td style="padding:4px 6px;"><input data-k="${esc(e.key)}" data-f="module" value="${esc(e.module||'')}" style="padding:4px 6px;font-size:9pt"></td>`+
+        `<td style="padding:4px 6px;"><input data-k="${esc(e.key)}" data-f="comment" placeholder="note..." style="padding:4px 6px;font-size:9pt"></td>`;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{
+      endpointLabels[e.target.dataset.k][e.target.dataset.f]=e.target.value;   // live update
+    }));
+  }catch(err){ body.innerHTML='<tr><td colspan="3" style="padding:8px;color:#b3261e">Could not load endpoints: '+esc(String(err))+'</td></tr>'; }
+}
+async function saveLabels(){
+  const cap=$('captureFile').value; if(!cap)return warn('Select a capture first.');
+  const labels=Object.keys(endpointLabels).map(k=>({key:k,module:endpointLabels[k].module,comment:endpointLabels[k].comment}));
+  try{const r=await api('/api/save-labels',{captureFile:cap,labels});result(true,'Labels saved',r.path?('Saved to '+r.path):'');}
+  catch(e){result(false,'Could not save',String(e));}
+}
+
+async function run(){
+  const a=action();
+  if(a==='active'){const chk=[...document.querySelectorAll('#activeChecks input:checked')];
+    if(!chk.length)return warn('Select at least one check.');
+    if(!$('captureFile').value)return warn('Select a capture file (record first if none).');}
+  const btn=$('runBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Running...';
+  const payload={action:a,project:val('project'),environment:val('environment'),host:val('host'),
+    authorizedBy:val('authorizedBy'),approvalReference:val('approvalReference'),approvalDate:val('approvalDate'),
+    configYaml:configYaml(),role:val('role'),startUrl:val('startUrl'),zap:$('zap').checked,harFile:val('harFile'),
+    captureFile:$('captureFile').value,checks:[...document.querySelectorAll('#activeChecks input:checked')].map(c=>c.value),
+    otherIds:val('otherIds'),serverKey:val('serverKey'),sessionValue:val('sessionValue')};
+  try{const r=await api('/api/run',payload);
+    result(r.ok, r.ok?'Run complete':'Run stopped', r.output||'', r.reportPath);
+  }catch(e){ result(false,'Could not reach the launcher', String(e)); }
+  btn.disabled=false;btn.innerHTML='Save &amp; run';
+}
+
+async function api(path,body){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Vapt-Token':TOKEN},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+}
+function warn(msg){result(false,'Check the form',msg);}
+function result(ok,title,body,reportPath){
+  $('mIco').textContent=ok?'✅':'⚠️'; $('mTitle').textContent=title;
+  let html='';
+  if(reportPath)html+=`<p>Report: <code>${esc(reportPath)}</code></p>`;
+  if(body)html+=`<pre>${esc(body)}</pre>`;
+  $('mBody').innerHTML=html||'<p>Done.</p>'; $('modalBg').style.display='flex';
+}
+function closeModal(){$('modalBg').style.display='none';}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+// default approval date = today
+$('approvalDate').value=new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>

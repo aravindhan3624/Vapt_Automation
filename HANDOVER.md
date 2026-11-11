@@ -1,6 +1,16 @@
 # HANDOVER.md — VAPT_Codes
 
-_Last verified: 2026-11-11 (pm). Read this alongside CLAUDE.md before continuing work._
+_Last verified: 2026-11-11 (pm2). Read this alongside CLAUDE.md before continuing work._
+
+## 2026-11-11 (pm2) - Run wizard (no code editing)
+- `tools/vapt-wizard.ps1` (HttpListener, 127.0.0.1, random port + one-time token) serves
+  `tools/wizard/index.html`: a 4-step form that writes projects/<p>/config/<p>-config.yaml,
+  lists captures from C:/captures/<p>, loads endpoints (/api/endpoints), saves per-endpoint
+  module+comment to <capture>.labels.json (/api/save-labels), and runs record/passive/active.
+- Secrets (session cookie, server key) set as child env only, removed after; the written config
+  holds only non-secret scope/host/env. Parses clean; endpoint parse = 22 on a real capture;
+  page renders with no console errors. NOT yet wired: the report consuming the labels sidecar.
+
 
 ## 2026-11-11 (pm) — Phase 6 ran on CKYC dev + encryption bridge
 - FIRST REAL FINDING: Phase 6 UNAUTH_DOCUMENT_ACCESS run confirmed 9 customer KYC documents
