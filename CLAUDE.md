@@ -17,8 +17,13 @@ architecture writeup (this file summarizes; that file is authoritative on design
 rationale).
 
 ## 2. Folder structure
-**Working copy (since 2026-11-05):** `C:\Users\da14294\OneDrive - isolve Technologies\Desktop\Automation_Testing_Projects\VAPT_Codes`.
-The old `D:\IntelliJ_Projects\VAPT_Codes` is archived at `D:\IntelliJ_Projects_Archive\VAPT_Codes_moved-to-OneDrive_2026-11-05` - don't edit it.
+**Working copy (since 2026-11-11):** `C:\dev\VAPT_Codes`. The project was moved OUT of OneDrive
+on 2026-11-11 because OneDrive kept corrupting the git working tree (rolling files back and making
+conflict copies). Do NOT work in the old OneDrive folder
+`C:\Users\da14294\OneDrive - isolve Technologies\Desktop\Automation_Testing_Projects\VAPT_Codes`
+(kept only as a backup), and keep this repo out of any OneDrive-synced path — git + GitHub already
+handle backup and sync. The old `D:\IntelliJ_Projects\VAPT_Codes` remains archived at
+`D:\IntelliJ_Projects_Archive\VAPT_Codes_moved-to-OneDrive_2026-11-05` - don't edit it.
 ```
 VAPT_Codes/
 ├── VAPT_Banking Domain check list_Final (1).xlsx   # source: 64-item banking VAPT checklist
